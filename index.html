@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>症例評価・問診フォーム｜MSMメソッド-X-</title>
+<style>
+  :root{
+    --ink:#22303a;
+    --sub:#6b7a86;
+    --bg:#f2f5f4;
+    --card:#ffffff;
+    --accent:#2e6e65;
+    --accent2:#3f8f83;
+    --danger:#c9564a;
+    --line:#e2e8e6;
+    --amber:#c98a2e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:40px;
+  }
+  header{
+    text-align:center;
+    padding:22px 16px 14px;
+  }
+  header .sub{font-size:12px;color:var(--sub);letter-spacing:.05em;}
+  header h1{font-size:19px;margin:2px 0 0;font-weight:700;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px;}
+
+  .progress-outer{
+    height:6px;background:#dfe6e4;border-radius:4px;overflow:hidden;margin-bottom:6px;
+  }
+  .progress-inner{height:100%;background:var(--accent);transition:width .25s;}
+  .progress-label{font-size:12px;color:var(--sub);text-align:right;margin-bottom:14px;}
+
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    padding:22px 20px;
+    box-shadow:0 2px 10px rgba(0,0,0,.06);
+    margin-bottom:16px;
+  }
+  .part-tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    color:var(--accent);
+    background:#e7f1ef;
+    padding:3px 9px;
+    border-radius:20px;
+    margin-bottom:8px;
+  }
+  .section-label{font-size:12px;color:var(--sub);margin-bottom:2px;}
+  .q-title{font-size:17px;font-weight:700;line-height:1.5;margin:2px 0 6px;}
+  .q-hint{font-size:12.5px;color:var(--sub);line-height:1.6;margin-bottom:14px;white-space:pre-line;}
+
+  textarea{
+    width:100%;
+    min-height:110px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--ink);
+    resize:vertical;
+    background:#fafcfb;
+  }
+  textarea:focus{outline:2px solid var(--accent2);border-color:transparent;}
+
+  .input-row{display:flex;gap:8px;align-items:flex-start;}
+  .input-row textarea{flex:1;}
+
+  .mic{
+    flex-shrink:0;
+    width:46px;height:46px;
+    border-radius:50%;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .2s, transform .1s;
+  }
+  .mic:active{transform:scale(.94);}
+  .mic.rec{background:var(--danger);animation:pulse 1s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,86,74,.5);}70%{box-shadow:0 0 0 10px rgba(201,86,74,0);}100%{box-shadow:0 0 0 0 rgba(201,86,74,0);}}
+  .mic svg{width:20px;height:20px;}
+
+  .status-line{font-size:12px;color:var(--accent);min-height:16px;margin-top:6px;}
+
+  /* ortho test */
+  .ortho-group{margin-bottom:18px;}
+  .ortho-group:last-child{margin-bottom:0;}
+  .ortho-group-title{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--line);}
+  .suggest-flag{color:var(--danger);font-size:11px;font-weight:700;margin-left:8px;}
+  .ortho-name.suggested,.rom-name.suggested{color:var(--danger);font-weight:700;}
+  .ortho-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .ortho-row:last-child{border-bottom:none;}
+  .ortho-name-wrap{display:flex;flex-direction:column;flex:1;padding-right:8px;}
+  .ortho-name{font-size:13px;line-height:1.4;}
+  .ortho-desc{font-size:11px;color:var(--sub);line-height:1.4;margin-top:2px;}
+  .ortho-btns{display:flex;gap:6px;flex-shrink:0;}
+  .ortho-btn{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--sub);
+    font-size:12px;
+    font-weight:700;
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .ortho-btn.pos.active{background:var(--danger);border-color:var(--danger);color:#fff;}
+  .ortho-btn.neg.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  /* rom */
+  .rom-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .rom-row:last-child{border-bottom:none;}
+  .rom-name{font-size:13px;line-height:1.4;flex:1;}
+  .rom-inputs{display:flex;gap:10px;flex-shrink:0;}
+  .rom-side{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--sub);}
+  .rom-input{
+    width:56px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:6px 6px;
+    font-size:14px;
+    text-align:center;
+    background:#fff;
+  }
+  .rom-input:focus{outline:2px solid var(--accent2);border-color:transparent;}
+  .mmt-input{
+    width:56px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:6px 6px;
+    font-size:14px;
+    text-align:center;
+    background:#fff;
+  }
+  .mmt-input:focus{outline:2px solid var(--accent2);border-color:transparent;}
+
+  /* progress log */
+  .progress-block{margin-bottom:18px;}
+  .progress-block:last-child{margin-bottom:0;}
+  .progress-block-title{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--line);}
+  .progress-session{margin-bottom:12px;}
+  .progress-session:last-child{margin-bottom:0;}
+  .progress-session-title{font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:4px;}
+  .progress-date{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    background:#fff;
+    margin-bottom:6px;
+    width:160px;
+  }
+  .progress-content{
+    width:100%;
+    min-height:60px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:14px;
+    font-family:inherit;
+    color:var(--ink);
+    resize:vertical;
+    background:#fafcfb;
+  }
+  .progress-content:focus{outline:2px solid var(--accent2);border-color:transparent;}
+
+  /* checklist */
+  .checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .check-item{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    background:#fafcfb;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .check-item input{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;}
+  .check-item.checked{border-color:var(--accent2);background:#eaf4f2;font-weight:600;}
+  .checklist-other-label{font-size:12.5px;color:var(--sub);margin-bottom:6px;font-weight:600;}
+
+  /* scale */
+  .scale-wrap{margin-bottom:10px;}
+  .scale-num{font-size:34px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:4px;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .scale-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:2px;}
+
+  /* photo */
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .photo-slot{
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:10px;
+    text-align:center;
+    background:#fafcfb;
+  }
+  .photo-slot label.name{display:block;font-size:12.5px;color:var(--sub);margin-bottom:6px;font-weight:600;}
+  .photo-slot img{max-width:100%;border-radius:8px;display:block;margin:0 auto 6px;}
+  .photo-slot input[type=file]{width:100%;font-size:12px;}
+  .photo-clear{font-size:11px;color:var(--danger);background:none;border:none;cursor:pointer;margin-top:4px;text-decoration:underline;}
+
+  /* video */
+  .video-group{margin-bottom:16px;}
+  .video-group:last-child{margin-bottom:0;}
+  .video-group-title{font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .video-grid{display:flex;flex-direction:column;gap:12px;}
+  .video-slot{
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:10px;
+    text-align:center;
+    background:#fafcfb;
+  }
+  .video-slot label.name{display:block;font-size:12.5px;color:var(--sub);margin-bottom:6px;font-weight:600;}
+  .video-slot iframe{width:100%;height:160px;border:none;border-radius:8px;display:block;margin-bottom:6px;}
+  .video-slot input[type=url]{width:100%;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;}
+  .video-link{font-size:12px;word-break:break-all;color:var(--accent);margin:6px 0;display:block;}
+  .video-clear{font-size:11px;color:var(--danger);background:none;border:none;cursor:pointer;margin-top:4px;text-decoration:underline;}
+
+  /* nav */
+  .nav-row{display:flex;gap:10px;margin-top:4px;}
+  .btn{
+    flex:1;
+    padding:14px 0;
+    border-radius:12px;
+    border:none;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:active{background:var(--accent2);}
+  .btn-ghost{background:#eef2f1;color:var(--sub);}
+  .btn-skip{background:none;color:var(--sub);text-decoration:underline;font-weight:500;flex:none;padding:14px 6px;}
+
+  .meta-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .link-btn{font-size:12.5px;color:var(--sub);background:none;border:none;text-decoration:underline;cursor:pointer;}
+
+  /* summary */
+  .sum-part{font-size:13px;font-weight:800;color:var(--accent);margin:20px 0 6px;padding-bottom:4px;border-bottom:2px solid var(--accent);}
+  .sum-part:first-child{margin-top:0;}
+  .sum-item{padding:10px 0;border-bottom:1px solid var(--line);}
+  .sum-q{font-size:12.5px;color:var(--sub);margin-bottom:3px;}
+  .sum-a{font-size:14.5px;white-space:pre-line;line-height:1.6;}
+  .sum-a.empty{color:#b6bfc2;font-style:italic;}
+  .sum-edit{font-size:11.5px;color:var(--accent);background:none;border:none;text-decoration:underline;cursor:pointer;padding:0;margin-left:8px;}
+  .sum-photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .sum-photos img{width:70px;height:70px;object-fit:cover;border-radius:8px;}
+
+  .action-bar{position:sticky;bottom:0;background:linear-gradient(to top, var(--bg) 70%, transparent);padding:14px 0 4px;}
+  .copied-msg{text-align:center;font-size:13px;color:var(--accent);font-weight:700;min-height:18px;margin-top:8px;}
+
+  .start-card{text-align:center;padding:30px 22px;}
+  .start-card p{font-size:13.5px;color:var(--sub);line-height:1.8;margin:10px 0 20px;}
+
+  .record-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .record-row:last-child{border-bottom:none;}
+  .record-info{min-width:0;}
+  .record-label{font-size:14px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .record-date{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .record-actions{display:flex;gap:8px;flex-shrink:0;}
+  .btn-record-open{background:var(--accent);color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .btn-record-del{background:none;border:none;color:var(--danger);font-size:12px;text-decoration:underline;cursor:pointer;}
+
+  .team-grid{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px;}
+  .team-btn{
+    padding:18px 0;
+    border-radius:14px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-size:17px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .team-btn:active{background:var(--accent2);}
+  .cloud-note{font-size:12px;color:var(--amber);margin-top:6px;}
+  .cloud-note.ok{color:var(--accent);}
+
+  #printArea{
+    position:absolute;
+    top:0;
+    left:-99999px;
+    width:760px;
+    background:#ffffff;
+    color:#22303a;
+    padding:24px;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  #printArea h1{font-size:20px;margin:0 0 16px;}
+  #printArea h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:4px;margin-top:22px;background:#ffffff;}
+  #printArea .pq{font-size:11px;color:#555;margin-top:8px;}
+  #printArea .pa{font-size:13px;white-space:pre-line;margin:2px 0 0;}
+  #printArea .pimgs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+  #printArea .pimgs img{width:120px;border-radius:6px;}
+  .export-progress{text-align:center;font-size:12.5px;color:var(--sub);margin-top:6px;min-height:16px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sub">MSMメソッド-X-</div>
+  <h1>症例評価・問診フォーム</h1>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<div id="printArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+/* ロゴ画像（右下に全ページ/全スライド共通で挿入） */
+const LOGO_DATA_URI = 'data:image/png;base64,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FitHdoopprBlllnGrrrqKhsxYoRdfvnldvLJJ1vXrl0b0f3111/t/vvvt2OOOcaOOuoom2uuuezss8+2li1b2gEHHGBzzDGHXXnllfb000/bdtttZwsttJCdeuqpttJKK9mJJ54Y9D7++GO74oor7IEHHrANN9zQVl11VZtuuunsk08+sQcffNDeeOMN23HHHW2LLbawX375JdYbOHCgzT777LbJJpvYvPPOG/dff/31oPHSSy9Z9+7dg2f2/Nlnn9kll1wSeznyyCNt3XXXtZ9++snuu+8+u+iii2It9tauXTtr1aqVffHFF/bjjz+GDJZaail799137YUXXrCpp5461kRm3Lv99tsNuR9yyCG25pprhixvuOGGkNu2225rO+ywQyN5FW+gr1NOOSV4WX311a1169ZB4/vvvzf2MOOMM9pee+1lnTp1Cnn+/PPPNnToULv22mtDzmuttZa1bdvWfv/9d3vnnXdiP5zvvvvu1rlzZ5tyyintvffeswsuuCD47dixoy2//PKxX2zkiSeesKeeesrWXnvtkO/cc88d+0Yvo0ePtkMPPdQWW2wxGzZsWKwJP+gQ3U077bTFrTQ6h4++ffvaa6+9FnaxyiqrGLaCPn/44Qebc845g8bXX39tDz/8sN1zzz2222672dZbb20zzTRTyGTvvfe2Z599NvTQpUuX4AX9jBo1KuTAHlijQ4cOsVf28+GHH9qss84assNWXn31VRs0aJCtuOKKdvzxx4fcYBZbRVdLLLFEyGTppZcO3Y4bN87OP//8kOngwYNtgQUWMPyhqeO5556zqaaaKn74AAqtOn777TeXUFxM4+BlfzJiP/DAA10O4XICr6urKztPjPpyyy3nL7/8sp977rlxfvfdd5ddX8LxO++807Vxv/HGG11G53fccYcrgHiPHj1chufrr7++n3feeS5BuxzY11tvPe/Tp0/QkzJdwcHlTL7rrrv6M88842+99Vb85LB+8803x/vQ+eabb1xKiz1AQwp3OU49XxK6S0m+5JJLxrrffvttPPv0009dgcc32GADV3CIezJMl8PV35NT1NP5448/nH3xYyBbnkNfjuBvvvmmv/LKK37CCSf4Gmus4Qo6MY/3rrvuOlcQcAW9uFftD/wzt3Pnzq6A4v379/d+/fq5gqD36tXL5SR+6aWXugJbkFGw8D322MMVEFwO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';
+const LOGO_ASPECT = 36/238; // height/width
+const WATERMARK_DATA_URI = 'data:image/png;base64,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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7IL/H0XPObuC8qBgAAAAAElFTkSuQmCC';
+const WATERMARK_ASPECT = 904/900; // height/width
+
+/* ========================= 質問定義 ========================= */
+const STEPS = [
+  {id:'date', part:'基本情報', section:'記入情報', title:'記入日を確認してください', type:'text', auto:true},
+  {id:'staff', part:'基本情報', section:'記入情報', title:'担当者名を入力してください', type:'text'},
+  {id:'sessionNo', part:'基本情報', section:'記入情報', title:'施術回数（何回目か）を入力してください', type:'text'},
+
+  {id:'age', part:'PART1 問診', section:'1. 患者様基礎情報', title:'年齢を教えてください', type:'text'},
+  {id:'sex', part:'PART1 問診', section:'1. 患者様基礎情報', title:'性別を教えてください', type:'text'},
+  {id:'job', part:'PART1 問診', section:'1. 患者様基礎情報', title:'職業・就労状況を教えてください', hint:'頻度・内容など', type:'text'},
+  {id:'family', part:'PART1 問診', section:'1. 患者様基礎情報', title:'家族構成・同居状況を教えてください', type:'text'},
+  {id:'goal', part:'PART1 問診', section:'5. 患者様のゴール', title:'患者様が望む状態を教えてください', type:'text'},
+
+  {id:'onset', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'発症時期・経過を教えてください', hint:'いつ頃から／きっかけの有無', type:'text'},
+  {id:'surgery', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'手術歴について教えてください', hint:'傷の具合・範囲・色味 等', type:'text'},
+  {id:'priorTreatment', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'OPE歴／整骨院・接骨院・他療法など、これまで受けた治療を教えてください', hint:'治療内容・期間・効果の実感 等', type:'text'},
+  {id:'exercise', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'運動の有無について教えてください', hint:'スポーツ歴・頻度／医師の指示による運動の有無・内容', type:'text'},
+  {id:'hospitalization', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'入院歴があれば教えてください', hint:'時期・理由・期間 等', type:'text'},
+  {id:'medicalHistory', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'病歴（基礎疾患等）を教えてください', type:'text'},
+  {id:'medication', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'服用薬・使用中の装具を教えてください', hint:'湿布／ベルト／薬の種類', type:'text'},
+  {id:'injuryHistory', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'ケガ・交通事故歴があれば教えてください', hint:'受傷時期・部位・後遺症の有無 等', type:'text'},
+
+  {id:'chiefArea', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'主訴部位を教えてください', type:'text'},
+  {id:'vas', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'疼痛の強さ（VAS）を選んでください', hint:'0：痛みなし　10：これまでで経験した最も強い痛み', type:'scale', noteHint:'安静時／動作時／最悪時など状況をメモしてください'},
+  {id:'relieve', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'症状が寛解する動き・姿勢を教えてください', type:'text'},
+  {id:'worsen', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'症状が悪化する動き・姿勢を教えてください', type:'text'},
+  {id:'onsetTime', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'歩くと何分／何メートル程度で痛みが出るか？', type:'text'},
+  {id:'patientGuess', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'患者様ご自身が考える症状の原因を教えてください', hint:'心当たりのある動作・出来事 等', type:'text'},
+
+  {id:'workLoad', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'仕事内容・家事負担・特に困っている動作を教えてください', type:'text'},
+  {id:'nutrition', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'栄養について教えてください', hint:'食事回数／PFCバランス／間食の有無／水分量（水のみ）', type:'text'},
+  {id:'sleep', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'睡眠について教えてください', hint:'布団orベッド（スプリング・マットレス）／睡眠時間／夜間トイレに起きる回数', type:'text'},
+  {id:'excretion', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'尿・便の状態を教えてください', hint:'回数・色・形状・残尿感／便秘・下痢の有無 等', type:'text'},
+  {id:'dailyLife', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'1日の過ごし方を教えてください', hint:'座位／立位／臥位／ソファ 等 主な過ごし方と時間の目安', type:'text'},
+  {id:'bath', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'入浴について教えてください', hint:'風呂orシャワー／入浴時間／温度', type:'text'},
+  {id:'stress', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'ストレス度を選んでください', hint:'0：ストレスなし　10：これまでで最も強いストレス', type:'scale', noteHint:''},
+  {id:'stressCause', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'ストレスの要因を教えてください', hint:'仕事／家庭・家族／人間関係／その他', type:'text'},
+  {id:'familySupport', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'家族のサポート状況を教えてください', type:'text'},
+
+  {id:'photos', part:'PART2 検査', section:'6. 写真・動画記録', title:'アライメント写真を添付してください', hint:'正面／横（右）／横（左）／後面', type:'photo'},
+  {id:'video', part:'PART2 検査', section:'6. 写真・動画記録', title:'YouTubeにアップした動画のリンクを貼り付けてください（該当する方のみ）', hint:'限定公開等でアップロードし、そのURLを貼り付けてください', type:'video'},
+
+  {id:'alignmentSpine', part:'PART2 検査', section:'7. アライメント所見（立位）', title:'脊柱・骨盤のアライメント所見を選んでください', hint:'該当するものすべてにチェックしてください', type:'checklist', options:['骨盤右凸','骨盤左凸','腰椎右凸','腰椎左凸','胸椎右凸','胸椎左凸','骨盤右回旋','骨盤左回旋','右ASIS低位','左ASIS低位','構築性側弯の疑い']},
+
+  {id:'painArea', part:'PART2 検査', section:'8. 疼痛部位', title:'疼痛部位を入力してください', hint:'該当箇所（左右別）・左右差・特記事項を自由に記入', type:'text'},
+
+  {id:'painTissue', part:'PART2 検査', section:'9. 発痛組織の推定・圧痛部位', title:'発痛組織の推定・圧痛部位を入力してください', hint:'例：肩＝棘上筋・棘下筋・肩甲下筋等／腰部・股関節＝大腰筋・中殿筋・梨状筋等／膝＝膝窩筋・鵞足部等　組織・筋肉名／部位／右左の有・程度', type:'text'},
+
+  {id:'orthoTest', part:'PART2 検査', section:'10. 整形外科的テスト', title:'整形外科的テストの結果を選んでください', hint:'実施したテストの陽性／陰性をタップしてください（未タップは未実施扱い）', type:'orthotest', groups:[
+    {group:'首（頸部）', tests:[
+      {name:'Spurling test', desc:'頸椎神経根症状の誘発（椎間孔狭窄）'},
+      {name:'Jackson compression test', desc:'頸椎圧迫による神経根症状の誘発'},
+      {name:'Distraction test（頸椎）', desc:'牽引による症状軽減の確認（神経根症状）'},
+      {name:'Vertebral artery test', desc:'椎骨動脈循環不全の確認'},
+      {name:'ULTT（上肢神経緊張テスト）', desc:'上肢神経の絞扼・伸張性の評価'},
+      {name:'Lhermitte sign', desc:'頸髄病変（電撃様感覚の誘発）'},
+      {name:'Adson test', desc:'胸郭出口症候群（前・中斜角筋部）'},
+      {name:'Wright test', desc:'胸郭出口症候群（小胸筋部）'},
+      {name:'Roos test（EAST）', desc:'胸郭出口症候群'},
+      {name:"O'Donoghue test", desc:'筋性・靭帯性疼痛の鑑別'},
+    ]},
+    {group:'肩', tests:[
+      {name:'Neer test', desc:'肩峰下インピンジメントの誘発'},
+      {name:'Hawkins-Kennedy test', desc:'肩峰下インピンジメントの誘発'},
+      {name:'Speed test', desc:'上腕二頭筋長頭腱の炎症・損傷'},
+      {name:'Yergason test', desc:'上腕二頭筋長頭腱の不安定性'},
+      {name:'Empty can test（Jobe test）', desc:'棘上筋の機能・損傷'},
+      {name:'Full can test', desc:'棘上筋の機能評価'},
+      {name:'Drop arm test', desc:'腱板断裂（特に棘上筋）'},
+      {name:'External rotation lag sign', desc:'棘下筋断裂'},
+      {name:'Belly press test（Napoleon test）', desc:'肩甲下筋断裂'},
+      {name:'Lift-off test', desc:'肩甲下筋の機能評価'},
+      {name:'Apprehension test', desc:'肩関節前方不安定性'},
+      {name:'Relocation test', desc:'肩関節前方不安定性の確認'},
+      {name:'Sulcus sign', desc:'肩関節下方不安定性'},
+      {name:"O'Brien test（Active compression test）", desc:'SLAP損傷'},
+      {name:'Cross body adduction test', desc:'肩鎖関節障害'},
+      {name:'Scarf test', desc:'肩鎖関節障害'},
+    ]},
+    {group:'体幹（腰部・仙腸関節）', tests:[
+      {name:'SLR（下肢伸展挙上テスト）', desc:'坐骨神経症状・神経根症状'},
+      {name:'Bragard test', desc:'SLR陽性所見の追加確認（神経性の鑑別）'},
+      {name:'Kemp test', desc:'椎間関節性腰痛の誘発'},
+      {name:'大腿神経伸展テスト（FNST）', desc:'上位腰椎神経根症状'},
+      {name:'Milgram test', desc:'硬膜外圧上昇による症状の誘発'},
+      {name:'Valsalva test', desc:'髄内圧上昇による神経症状の誘発'},
+      {name:'Prone instability test', desc:'腰椎分節性不安定性'},
+      {name:'Newton test', desc:'仙腸関節性疼痛の誘発'},
+      {name:'Gaenslen test', desc:'仙腸関節性疼痛の誘発'},
+      {name:'Thigh thrust test', desc:'仙腸関節性疼痛の誘発'},
+      {name:'Compression test（仙腸関節）', desc:'仙腸関節性疼痛の誘発'},
+      {name:'Distraction test（仙腸関節）', desc:'仙腸関節性疼痛の誘発'},
+    ]},
+    {group:'股関節', tests:[
+      {name:'Thomas test', desc:'腸腰筋の短縮・柔軟性低下'},
+      {name:'Faddir test（FADIR）', desc:'大腿寛骨臼インピンジメント（FAI）'},
+      {name:'Patrick test（Fabere test）', desc:'股関節・仙腸関節由来の疼痛'},
+      {name:'Ober test', desc:'大腿筋膜張筋・腸脛靭帯の短縮'},
+      {name:'Trendelenburg test', desc:'中殿筋の機能不全'},
+      {name:'Log roll test', desc:'股関節内病変（関節包・骨頭）'},
+      {name:'Scour test（Quadrant test）', desc:'股関節唇損傷・変性の疑い'},
+      {name:"Ely's test", desc:'大腿直筋の短縮'},
+      {name:"Craig's test", desc:'大腿骨前捻角の評価'},
+      {name:'Stinchfield test', desc:'股関節内病変（抵抗下SLR）'},
+    ]},
+    {group:'膝', tests:[
+      {name:'McMurray test', desc:'半月板損傷'},
+      {name:'Apley test（圧迫・牽引）', desc:'半月板・靭帯損傷の鑑別'},
+      {name:'Thessaly test', desc:'半月板損傷'},
+      {name:'Lachman test', desc:'前十字靭帯損傷'},
+      {name:'前方引き出しテスト', desc:'前十字靭帯損傷'},
+      {name:'後方引き出しテスト', desc:'後十字靭帯損傷'},
+      {name:'Pivot shift test', desc:'前十字靭帯の機能的不安定性'},
+      {name:'外反ストレステスト', desc:'内側側副靭帯損傷'},
+      {name:'内反ストレステスト', desc:'外側側副靭帯損傷'},
+      {name:'Patellar apprehension test', desc:'膝蓋骨不安定性'},
+      {name:"Clarke's test（Patellar grind test）", desc:'膝蓋大腿関節障害'},
+      {name:'Noble compression test', desc:'腸脛靭帯炎'},
+    ]},
+    {group:'足首（足関節・足部）', tests:[
+      {name:'前方引き出しテスト（足関節）', desc:'前距腓靭帯損傷'},
+      {name:'Talar tilt test', desc:'距骨傾斜（外側靭帯損傷）'},
+      {name:'Thompson test', desc:'アキレス腱断裂'},
+      {name:'Squeeze test', desc:'脛腓靭帯結合損傷'},
+      {name:'External rotation test（Kleiger test）', desc:'脛腓靭帯結合損傷'},
+      {name:'Windlass test', desc:'足底腱膜炎'},
+      {name:'Tinel sign（足根管）', desc:'足根管症候群'},
+      {name:'Anterior impingement test', desc:'足関節前方インピンジメント'},
+    ]},
+  ]},
+
+  {id:'rom', part:'PART2 検査', section:'11. ROM（関節可動域）', title:'ROM（関節可動域）の測定結果を入力してください', hint:'測定した角度（°）のみ入力してください（未入力の項目は出力されません）', type:'rom', groups:[
+    {group:'頸部', items:[{name:'屈曲'},{name:'伸展'},{name:'側屈（右）'},{name:'側屈（左）'},{name:'回旋（右）'},{name:'回旋（左）'}]},
+    {group:'体幹', items:[{name:'屈曲'},{name:'伸展'},{name:'側屈（右）'},{name:'側屈（左）'},{name:'回旋（右）'},{name:'回旋（左）'}]},
+    {group:'肩関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true},{name:'外転',bilateral:true},{name:'内転',bilateral:true},{name:'外旋',bilateral:true},{name:'内旋',bilateral:true}]},
+    {group:'股関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true},{name:'外転',bilateral:true},{name:'内転',bilateral:true},{name:'外旋',bilateral:true},{name:'内旋',bilateral:true}]},
+    {group:'膝関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true}]},
+    {group:'足関節', items:[{name:'背屈',bilateral:true},{name:'底屈',bilateral:true},{name:'内反',bilateral:true},{name:'外反',bilateral:true}]},
+  ]},
+
+  {id:'mmt', part:'PART2 検査', section:'12. MMT（徒手筋力検査）', title:'MMT（徒手筋力検査）の結果を入力してください', hint:'各筋肉のスコア（0〜5）を右・左それぞれ入力してください（未入力の項目は出力されません）', type:'mmt', groups:[
+    {group:'頸部', muscles:['胸鎖乳突筋','頸部屈筋群','頸部伸筋群','僧帽筋上部']},
+    {group:'肩', muscles:['三角筋（前部）','三角筋（中部）','三角筋（後部）','棘上筋','棘下筋・小円筋','肩甲下筋','僧帽筋中部・下部','前鋸筋','広背筋','大胸筋','上腕二頭筋','上腕三頭筋']},
+    {group:'体幹', muscles:['腹直筋','腹斜筋（内・外）','脊柱起立筋','多裂筋','大腰筋','腰方形筋']},
+    {group:'股関節', muscles:['腸腰筋','大殿筋','中殿筋','小殿筋','大腿筋膜張筋','内転筋群','梨状筋','ハムストリングス']},
+    {group:'膝', muscles:['大腿四頭筋','ハムストリングス','膝窩筋']},
+    {group:'足首', muscles:['前脛骨筋','後脛骨筋','長腓骨筋・短腓骨筋','下腿三頭筋（腓腹筋・ヒラメ筋）','長趾伸筋','長趾屈筋']},
+  ]},
+
+  {id:'reflex', part:'PART2 検査', section:'13. 腱反射', title:'腱反射の結果を入力してください', hint:'膝蓋腱反射(PTR)／上腕二頭筋腱反射(BTR)／腕橈骨筋腱反射(BRR)／アキレス腱反射(ATR)　0＝消失 1+＝低下 2+＝正常 3+＝軽度亢進 4+＝著明な亢進', type:'text'},
+
+  {id:'objectiveSummary', part:'PART2 検査', section:'14. 客観的事実（まとめ）', title:'検査から得られた客観的事実をまとめてください', hint:'ROM制限／筋力低下／疼痛誘発テスト陽性所見／圧痛部位／アライメント異常／腱反射異常 等　主観的な解釈を含めず事実のみ', type:'text'},
+
+  {id:'reasoning', part:'PART3 仮説', section:'15. 症例推論（仮説立案）', title:'該当する観点と、その根拠となる客観的事実を入力してください', hint:'近位関節・体幹の安定性低下／主動筋の筋出力低下・抑制／関節モビリティ制限／運動連鎖・代償動作の関与／神経学的所見の関与／構築性の変化／姿勢・アライメントの関与／その他', type:'text'},
+  {id:'hypothesis', part:'PART3 仮説', section:'15. 症例推論（仮説立案）', title:'仮説を入力してください', hint:'「〇〇という客観的事実から、△△が疑われる」という形で、事実→推論の対応を意識して', type:'text'},
+
+  {id:'treatmentPlan', part:'PART3 仮説', section:'16. 今後の治療方針', title:'今後の治療方針を入力してください', hint:'優先して取り組む項目・エクササイズ／コアスタビリティ・可動域改善・筋出力向上 等', type:'text'},
+
+  {id:'progressNote', part:'PART3 仮説', section:'17. 経過記録', title:'経過記録を回数ごとに入力してください', hint:'日付と実施内容・変化点・次回への申し送りなどを、該当する回に入力してください（未入力の回は出力されません）', type:'progresslog', groups:[
+    {label:'1〜5回目', sessions:[1,2,3,4,5]},
+    {label:'6〜10回目', sessions:[6,7,8,9,10]},
+    {label:'11〜15回目', sessions:[11,12,13,14,15]},
+    {label:'16〜20回目', sessions:[16,17,18,19,20]},
+    {label:'21〜25回目', sessions:[21,22,23,24,25]},
+    {label:'26〜30回目', sessions:[26,27,28,29,30]},
+  ]},
+];
+
+/* ========================= state ========================= */
+const TEAM_LIST = ['チームC', 'チームD'];
+const RECORDS_INDEX_KEY = 'rokuyo_case_form_records_v1';
+const RECORD_KEY_PREFIX = 'rokuyo_case_form_record_';
+const LEGACY_STORAGE_KEY = 'rokuyo_case_form_draft_v1';
+let currentTeam = null;
+let currentRecordId = null;
+let currentRecordLabel = '';
+let answers = {};
+let photoData = {}; // {slotKey: dataURL}
+let videoData = {}; // {slotKey: dataURL}
+let orthoTestData = {}; // {"group::test": 'positive'|'negative'}
+let romData = {}; // {"group::item[::R/L]": '45'}
+let mmtData = {}; // {"group::muscle::R/L": '4'}
+let progressData = {}; // {sessionNumber: {date:'', content:''}}
+let idx = -1; // -1 = record list screen, STEPS.length = summary
+let recognizing = false;
+
+const PHOTO_SLOTS = ['正面','横（右）','横（左）','後面'];
+const VIDEO_GROUPS = [
+  {group:'歩行動画', slots:['歩行正面','歩行後ろ','歩行側面（左右）']},
+  {group:'各種検査', slots:['検査①','検査②','検査③']},
+  {group:'各種ムーブメント', slots:['ムーブメント①','ムーブメント②','ムーブメント③']},
+];
+const VIDEO_SLOTS = VIDEO_GROUPS.flatMap(g=>g.slots.map(s=>`${g.group}_${s}`));
+const VIDEO_SLOT_LABELS = {};
+VIDEO_GROUPS.forEach(g=>g.slots.forEach(s=>{ VIDEO_SLOT_LABELS[`${g.group}_${s}`] = s; }));
+
+/* ---- Firebase（チーム間・端末間の共有保存） ----
+   ご利用には無料のFirebaseプロジェクトが必要です。
+   1) https://console.firebase.google.com でプロジェクトを作成
+   2) 「Firestore Database」を作成（テストモードでOK）
+   3) プロジェクト設定 → 全般 → マイアプリ で「ウェブアプリを追加」し、
+      表示されたfirebaseConfigの値を下のFIREBASE_CONFIGに貼り付けてください
+   設定するまでは、この端末のみに保存されるモードで動作します。 */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDErlUnl_K0t8gNNdsiN3uLN4-US51uAfA",
+  authDomain: "msm-x-4f7d9.firebaseapp.com",
+  projectId: "msm-x-4f7d9",
+  storageBucket: "msm-x-4f7d9.firebasestorage.app",
+  messagingSenderId: "624858098736",
+  appId: "1:624858098736:web:ed450ce565ca1d6cfa91f5"
+};
+let cloudReady = false;
+let db = null;
+try{
+  if(window.firebase && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY'){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    cloudReady = true;
+  }
+}catch(e){ console.error('Firebase init failed', e); cloudReady = false; }
+
+/* ---- クラウド保存（チーム共有） ---- */
+async function cloudListRecords(team){
+  const snap = await db.collection('teams').doc(team).collection('records').orderBy('updatedAt','desc').get();
+  return snap.docs.map(d=>({ id: d.id, label: d.data().label || '', updatedAt: d.data().updatedAt || 0 }));
+}
+async function cloudFetchRecord(team, id){
+  const doc = await db.collection('teams').doc(team).collection('records').doc(id).get();
+  if(!doc.exists) return null;
+  const d = doc.data();
+  let state = {};
+  try{ state = JSON.parse(d.data || '{}'); }catch(e){}
+  return { label: d.label || '', state };
+}
+async function cloudSaveRecord(team, id, label, stateObj){
+  await db.collection('teams').doc(team).collection('records').doc(id).set({
+    label: label,
+    updatedAt: Date.now(),
+    data: JSON.stringify(stateObj)
+  });
+}
+async function cloudDeleteRecord(team, id){
+  await db.collection('teams').doc(team).collection('records').doc(id).delete();
+}
+
+/* ---- この端末のみの保存（クラウド未設定時のフォールバック、チームごとに別リスト） ---- */
+function localIndexKey(team){ return RECORDS_INDEX_KEY + '_' + team; }
+function getRecordsIndex(){
+  try{
+    const raw = localStorage.getItem(localIndexKey(currentTeam));
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveRecordsIndex(list){
+  try{ localStorage.setItem(localIndexKey(currentTeam), JSON.stringify(list)); }catch(e){}
+}
+function migrateLegacyDraftIfNeeded(){
+  try{
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if(legacy && getRecordsIndex().length===0){
+      const id = 'r' + Date.now();
+      localStorage.setItem(RECORD_KEY_PREFIX + id, legacy);
+      saveRecordsIndex([{ id, label: '以前の入力', updatedAt: Date.now() }]);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+  }catch(e){}
+}
+function formatUpdatedAt(ts){
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ---- 記録の管理（クラウドが使えればクラウド、なければ端末内） ---- */
+async function createNewRecord(label){
+  const id = 'r' + Date.now();
+  const finalLabel = label || `記録_${todayFileStr()}`;
+  currentRecordId = id;
+  currentRecordLabel = finalLabel;
+  answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
+  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
+  if(cloudReady){
+    try{ await cloudSaveRecord(currentTeam, id, finalLabel, stateObj); }catch(e){ console.error(e); }
+  } else {
+    const list = getRecordsIndex();
+    list.unshift({ id, label: finalLabel, updatedAt: Date.now() });
+    saveRecordsIndex(list);
+    try{ localStorage.setItem(RECORD_KEY_PREFIX + id, JSON.stringify(stateObj)); }catch(e){}
+  }
+  return id;
+}
+async function loadRecord(id){
+  if(cloudReady){
+    try{
+      const rec = await cloudFetchRecord(currentTeam, id);
+      if(!rec) return false;
+      answers = rec.state.answers || {};
+      photoData = rec.state.photoData || {};
+      videoData = rec.state.videoData || {};
+      orthoTestData = rec.state.orthoTestData || {};
+      romData = rec.state.romData || {};
+      mmtData = rec.state.mmtData || {};
+      progressData = rec.state.progressData || {};
+      currentRecordId = id;
+      currentRecordLabel = rec.label;
+      return true;
+    }catch(e){ console.error(e); return false; }
+  }
+  try{
+    const raw = localStorage.getItem(RECORD_KEY_PREFIX + id);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    answers = d.answers || {};
+    photoData = d.photoData || {};
+    videoData = d.videoData || {};
+    orthoTestData = d.orthoTestData || {};
+    romData = d.romData || {};
+    mmtData = d.mmtData || {};
+    progressData = d.progressData || {};
+    currentRecordId = id;
+    const list = getRecordsIndex();
+    const rec = list.find(r=>r.id===id);
+    currentRecordLabel = rec ? rec.label : '';
+    return true;
+  }catch(e){ return false; }
+}
+async function deleteRecord(id){
+  if(cloudReady){
+    try{ await cloudDeleteRecord(currentTeam, id); }catch(e){ console.error(e); }
+  } else {
+    localStorage.removeItem(RECORD_KEY_PREFIX + id);
+    saveRecordsIndex(getRecordsIndex().filter(r=>r.id!==id));
+  }
+  if(currentRecordId===id) currentRecordId = null;
+}
+async function saveDraft(){
+  if(!currentRecordId) return;
+  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
+  if(cloudReady){
+    try{ await cloudSaveRecord(currentTeam, currentRecordId, currentRecordLabel, stateObj); }catch(e){ console.error(e); }
+  } else {
+    try{
+      localStorage.setItem(RECORD_KEY_PREFIX + currentRecordId, JSON.stringify(stateObj));
+      const list = getRecordsIndex();
+      const rec = list.find(r=>r.id===currentRecordId);
+      if(rec){ rec.updatedAt = Date.now(); saveRecordsIndex(list); }
+    }catch(e){ /* 容量オーバー等は無視 */ }
+  }
+}
+async function clearDraft(){
+  if(currentRecordId) await deleteRecord(currentRecordId);
+  currentRecordId = null;
+  currentRecordLabel = '';
+  answers = {};
+  photoData = {};
+  videoData = {};
+  orthoTestData = {};
+  romData = {};
+  mmtData = {};
+  progressData = {};
+}
+
+function todayStr(){
+  const d = new Date();
+  const w = ['日','月','火','水','木','金','土'][d.getDay()];
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${w}）`;
+}
+
+const app = document.getElementById('app');
+
+/* ========================= render: チーム選択 ========================= */
+function renderTeamSelect(){
+  app.innerHTML = `
+    <div class="card start-card">
+      <div class="part-tag">MSMメソッド-X-　症例評価・問診</div>
+      <p>チームを選択してください。</p>
+      <div class="team-grid">
+        ${TEAM_LIST.map(t=>`<button class="team-btn" data-team="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
+      </div>
+      ${!cloudReady ? `<p class="cloud-note">⚠ クラウド共有が未設定のため、現在はこの端末内にのみ保存されます。</p>` : `<p class="cloud-note ok">🔗 チーム内で共有されます</p>`}
+    </div>
+  `;
+  app.querySelectorAll('.team-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentTeam = btn.dataset.team;
+      idx = -1;
+      renderStart();
+    });
+  });
+}
+
+/* ========================= render: 記録一覧 ========================= */
+async function renderStart(){
+  app.innerHTML = `
+    <div class="card start-card">
+      <div class="part-tag">${escapeHtml(currentTeam || '')}</div>
+      <p>読み込み中…</p>
+    </div>
+  `;
+  if(!cloudReady) migrateLegacyDraftIfNeeded();
+  let records = [];
+  try{
+    records = cloudReady ? await cloudListRecords(currentTeam) : getRecordsIndex();
+  }catch(e){ console.error(e); records = getRecordsIndex(); }
+  records.sort((a,b)=>b.updatedAt-a.updatedAt);
+
+  const listHtml = records.length ? `
+    <div class="card" style="text-align:left;">
+      <div class="q-title" style="font-size:15px;margin-bottom:12px;">保存済みの記録</div>
+      ${records.map(r=>`
+        <div class="record-row" data-id="${r.id}">
+          <div class="record-info">
+            <div class="record-label">${escapeHtml(r.label)}</div>
+            <div class="record-date">最終更新：${formatUpdatedAt(r.updatedAt)}</div>
+          </div>
+          <div class="record-actions">
+            <button class="btn-record-open" data-id="${r.id}">続きを入力</button>
+            <button class="btn-record-del" data-id="${r.id}">削除</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  app.innerHTML = `
+    <div class="card start-card">
+      <button class="link-btn" id="backToTeam" style="margin-bottom:10px;">← チーム選択に戻る</button>
+      <div class="part-tag">${escapeHtml(currentTeam)}</div>
+      <p>質問がひとつずつ出てきます。🎤ボタンでしゃべって入力するか、キーボードで直接入力してください。<br>経過観察で後日また続きを入力することもできます。</p>
+      <button class="btn btn-primary" id="startBtn">＋ 新しい記録をはじめる</button>
+      ${!cloudReady ? `<p class="cloud-note">⚠ この端末内にのみ保存されています</p>` : ''}
+    </div>
+    ${listHtml}
+  `;
+  document.getElementById('backToTeam').onclick = ()=>{ renderTeamSelect(); };
+  document.getElementById('startBtn').onclick = async ()=>{
+    const label = prompt('この記録の名前を入力してください（例：田中様　肩　8/6）\n空欄のままでもOKです', '');
+    await createNewRecord(label ? label.trim() : '');
+    idx = 0;
+    renderStep();
+  };
+  app.querySelectorAll('.btn-record-open').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(await loadRecord(btn.dataset.id)){
+        idx = findFirstUnanswered();
+        renderStep();
+      }
+    });
+  });
+  app.querySelectorAll('.btn-record-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const rec = records.find(r=>r.id===btn.dataset.id);
+      if(confirm(`「${rec ? rec.label : 'この記録'}」を削除します。よろしいですか？`)){
+        await deleteRecord(btn.dataset.id);
+        renderStart();
+      }
+    });
+  });
+}
+
+function findFirstUnanswered(){
+  for(let i=0;i<STEPS.length;i++){
+    const s = STEPS[i];
+    if(s.type==='photo'){
+      if(!PHOTO_SLOTS.every(k=>photoData[k])) return i;
+    } else if(s.type==='video'){
+      if(!VIDEO_SLOTS.every(k=>videoData[k])) return i;
+    } else if(s.type==='scale'){
+      if(answers[s.id]===undefined) return i;
+    } else if(s.type==='checklist'){
+      const arr = answers[s.id];
+      if(!((arr && arr.length) || answers[s.id+'_other'])) return i;
+    } else if(s.type==='orthotest'){
+      if(Object.keys(orthoTestData).length===0) return i;
+    } else if(s.type==='rom'){
+      if(Object.keys(romData).length===0) return i;
+    } else if(s.type==='mmt'){
+      if(Object.keys(mmtData).length===0) return i;
+    } else if(s.type==='progresslog'){
+      if(Object.keys(progressData).length===0) return i;
+    } else {
+      if(!answers[s.id]) return i;
+    }
+  }
+  return STEPS.length; // すべて回答済み→サマリーへ
+}
+
+/* ========================= render: step ========================= */
+function renderStep(){
+  if(idx >= STEPS.length){ renderSummary(); return; }
+  const s = STEPS[idx];
+  if(s.auto && answers[s.id]===undefined){ answers[s.id] = todayStr(); }
+
+  const pct = Math.round((idx/STEPS.length)*100);
+
+  let inputHtml = '';
+  if(s.type==='text'){
+    const val = answers[s.id] || '';
+    inputHtml = `
+      ${s.id==='objectiveSummary' ? `<button class="btn btn-ghost" id="autoFillBtn" type="button" style="margin-bottom:12px;">検査結果から自動入力</button>` : ''}
+      <div class="input-row">
+        <textarea id="ans" placeholder="回答を入力…">${escapeHtml(val)}</textarea>
+        <button class="mic" id="micBtn" type="button" aria-label="音声入力">${micIcon()}</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+    `;
+  } else if(s.type==='checklist'){
+    const checked = answers[s.id] || [];
+    const other = answers[s.id+'_other'] || '';
+    inputHtml = `
+      <div class="checklist-grid">
+        ${s.options.map((opt,oi)=>`
+          <label class="check-item ${checked.includes(opt)?'checked':''}">
+            <input type="checkbox" data-check-idx="${oi}" ${checked.includes(opt)?'checked':''}>
+            ${escapeHtml(opt)}
+          </label>
+        `).join('')}
+      </div>
+      <div class="checklist-other-label">その他（自由記入）</div>
+      <div class="input-row">
+        <textarea id="ansOther" placeholder="その他の所見があれば入力…">${escapeHtml(other)}</textarea>
+        <button class="mic" id="micBtn" type="button" aria-label="音声入力">${micIcon()}</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+    `;
+  } else if(s.type==='orthotest'){
+    const suggested = getSuggestedGroupNames();
+    const suggestedTests = getSuggestedTestKeys();
+    inputHtml = s.groups.map(g=>{
+      const isSuggested = suggested.has(g.group);
+      return `
+      <div class="ortho-group">
+        <div class="ortho-group-title">${g.group}${isSuggested?'<span class="suggest-flag">⚠ 部位の記載あり</span>':''}</div>
+        ${g.tests.map(t=>{
+          const key = `${g.group}::${t.name}`;
+          const status = orthoTestData[key];
+          const isTestSuggested = suggestedTests.has(key);
+          return `
+          <div class="ortho-row">
+            <div class="ortho-name-wrap">
+              <span class="ortho-name ${isTestSuggested?'suggested':''}">${escapeHtml(t.name)}${isTestSuggested?' <span class="suggest-flag">推奨</span>':''}</span>
+              <span class="ortho-desc">${escapeHtml(t.desc)}</span>
+            </div>
+            <div class="ortho-btns">
+              <button type="button" class="ortho-btn pos ${status==='positive'?'active':''}" data-key="${escapeHtml(key)}" data-status="positive">陽性</button>
+              <button type="button" class="ortho-btn neg ${status==='negative'?'active':''}" data-key="${escapeHtml(key)}" data-status="negative">陰性</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;}).join('');
+  } else if(s.type==='rom'){
+    const suggested = getSuggestedGroupNames();
+    inputHtml = s.groups.map(g=>{
+      const isSuggested = suggested.has(g.group);
+      return `
+      <div class="ortho-group">
+        <div class="ortho-group-title">${g.group}${isSuggested?'<span class="suggest-flag">⚠ 所見あり・実施推奨</span>':''}</div>
+        ${g.items.map(item=>{
+          if(item.bilateral){
+            const rKey = `${g.group}::${item.name}::R`;
+            const lKey = `${g.group}::${item.name}::L`;
+            return `
+            <div class="rom-row">
+              <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
+              <div class="rom-inputs">
+                <label class="rom-side">右 <input type="number" class="rom-input" data-key="${escapeHtml(rKey)}" value="${romData[rKey]!==undefined?romData[rKey]:''}" placeholder="-">°</label>
+                <label class="rom-side">左 <input type="number" class="rom-input" data-key="${escapeHtml(lKey)}" value="${romData[lKey]!==undefined?romData[lKey]:''}" placeholder="-">°</label>
+              </div>
+            </div>`;
+          }
+          const key = `${g.group}::${item.name}`;
+          return `
+          <div class="rom-row">
+            <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
+            <div class="rom-inputs">
+              <label class="rom-side"><input type="number" class="rom-input" data-key="${escapeHtml(key)}" value="${romData[key]!==undefined?romData[key]:''}" placeholder="-">°</label>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;}).join('');
+  } else if(s.type==='mmt'){
+    const suggested = getSuggestedGroupNames();
+    inputHtml = s.groups.map(g=>{
+      const isSuggested = suggested.has(g.group);
+      return `
+      <div class="ortho-group">
+        <div class="ortho-group-title">${g.group}${isSuggested?'<span class="suggest-flag">⚠ 所見あり・実施推奨</span>':''}</div>
+        ${g.muscles.map(m=>{
+          const rKey = `${g.group}::${m}::R`;
+          const lKey = `${g.group}::${m}::L`;
+          return `
+          <div class="rom-row">
+            <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(m)}</span>
+            <div class="rom-inputs">
+              <label class="rom-side">右 <input type="number" class="mmt-input" min="0" max="5" step="1" data-key="${escapeHtml(rKey)}" value="${mmtData[rKey]!==undefined?mmtData[rKey]:''}" placeholder="-">/5</label>
+              <label class="rom-side">左 <input type="number" class="mmt-input" min="0" max="5" step="1" data-key="${escapeHtml(lKey)}" value="${mmtData[lKey]!==undefined?mmtData[lKey]:''}" placeholder="-">/5</label>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;}).join('');
+  } else if(s.type==='progresslog'){
+    inputHtml = s.groups.map(g=>`
+      <div class="progress-block">
+        <div class="progress-block-title">${escapeHtml(g.label)}</div>
+        ${g.sessions.map(n=>{
+          const entry = progressData[n] || {};
+          return `
+          <div class="progress-session">
+            <div class="progress-session-title">${n}回目</div>
+            <input type="date" class="progress-date" data-key="${n}" value="${entry.date||''}">
+            <textarea class="progress-content" data-key="${n}" placeholder="実施内容・変化点・次回への申し送りなど">${escapeHtml(entry.content||'')}</textarea>
+          </div>`;
+        }).join('')}
+      </div>
+    `).join('');
+  } else if(s.type==='scale'){
+    const val = answers[s.id]!==undefined ? answers[s.id] : 0;
+    const note = answers[s.id+'_note'] || '';
+    inputHtml = `
+      <div class="scale-wrap">
+        <div class="scale-num" id="scaleNum">${val}</div>
+        <input type="range" id="scaleRange" min="0" max="10" step="1" value="${val}">
+        <div class="scale-legend"><span>0</span><span>10</span></div>
+      </div>
+      ${s.noteHint!==undefined ? `
+      <div class="q-hint" style="margin-top:10px;margin-bottom:6px;">${escapeHtml(s.noteHint||'')}</div>
+      <div class="input-row">
+        <textarea id="ansNote" placeholder="状況メモ（任意）">${escapeHtml(note)}</textarea>
+        <button class="mic" id="micBtn" type="button" aria-label="音声入力">${micIcon()}</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      ` : ''}
+    `;
+  } else if(s.type==='photo'){
+    inputHtml = `<div class="photo-grid">
+      ${PHOTO_SLOTS.map(key=>`
+        <div class="photo-slot">
+          <label class="name">${key}</label>
+          ${photoData[key] ? `<img src="${photoData[key]}"><button class="photo-clear" data-key="${key}">削除</button>` : `<input type="file" accept="image/*" capture="environment" data-key="${key}">`}
+        </div>
+      `).join('')}
+    </div>`;
+  } else if(s.type==='video'){
+    inputHtml = VIDEO_GROUPS.map(g=>`
+      <div class="video-group">
+        <div class="video-group-title">${g.group}</div>
+        <div class="video-grid">
+          ${g.slots.map(slotLabel=>{
+            const key = `${g.group}_${slotLabel}`;
+            const url = videoData[key];
+            const embed = url ? youtubeEmbedUrl(url) : null;
+            return `
+            <div class="video-slot">
+              <label class="name">${slotLabel}</label>
+              ${url ? `
+                ${embed ? `<iframe src="${embed}" allowfullscreen></iframe>` : ''}
+                <a class="video-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>
+                <button class="video-clear" data-key="${key}">削除</button>
+              ` : `<input type="url" inputmode="url" placeholder="YouTubeのURLを貼り付け" data-key="${key}">`}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  app.innerHTML = `
+    <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+    <div class="progress-label">${idx+1} / ${STEPS.length}</div>
+    <div class="card">
+      <div class="meta-row">
+        <span class="part-tag">${s.part}</span>
+        <span>
+          <button class="link-btn" id="toRecordList" style="margin-right:10px;">記録一覧へ</button>
+          <button class="link-btn" id="toSummary">一覧・見直しへ</button>
+        </span>
+      </div>
+      <div class="section-label">${s.section}</div>
+      <div class="q-title">${s.title}</div>
+      ${s.hint ? `<div class="q-hint">${escapeHtml(s.hint)}</div>` : ''}
+      ${inputHtml}
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" id="backBtn" ${idx===0?'disabled style="opacity:.4"':''}>戻る</button>
+      <button class="btn-skip" id="skipBtn" type="button">スキップ</button>
+      <button class="btn btn-primary" id="nextBtn">${idx===STEPS.length-1?'完了して確認する':'次へ'}</button>
+    </div>
+  `;
+
+  document.getElementById('toRecordList').onclick = ()=>{ commitStep(s); saveDraft(); idx = -1; renderStart(); };
+  document.getElementById('toSummary').onclick = ()=>{ commitStep(s); idx = STEPS.length; saveDraft(); renderSummary(); };
+  document.getElementById('backBtn').onclick = ()=>{ commitStep(s); idx = Math.max(0, idx-1); saveDraft(); renderStep(); };
+  document.getElementById('skipBtn').onclick = ()=>{ idx++; saveDraft(); renderStep(); };
+  document.getElementById('nextBtn').onclick = ()=>{ commitStep(s); idx++; saveDraft(); renderStep(); };
+
+  const autoFillBtn = document.getElementById('autoFillBtn');
+  if(autoFillBtn){
+    autoFillBtn.addEventListener('click', ()=>{
+      const generated = generateObjectiveSummaryText();
+      if(!generated){
+        alert('まだ他の検査項目（アライメント・疼痛部位・整形外科的テスト・ROM・MMT・腱反射）が入力されていません。');
+        return;
+      }
+      const ta = document.getElementById('ans');
+      if(ta.value.trim() && !confirm('現在の内容を上書きして、検査結果から自動入力します。よろしいですか？（キャンセルすると末尾に追記します）')){
+        ta.value = ta.value.trim() + '\n\n' + generated;
+      } else {
+        ta.value = generated;
+      }
+    });
+  }
+
+  if(s.type==='scale'){
+    const range = document.getElementById('scaleRange');
+    const num = document.getElementById('scaleNum');
+    range.addEventListener('input', ()=>{ num.textContent = range.value; });
+  }
+  if(s.type==='checklist'){
+    app.querySelectorAll('.check-item input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{ cb.closest('.check-item').classList.toggle('checked', cb.checked); });
+    });
+  }
+  if(s.type==='orthotest'){
+    app.querySelectorAll('.ortho-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.dataset.key;
+        const status = btn.dataset.status;
+        if(orthoTestData[key] === status){
+          delete orthoTestData[key];
+        } else {
+          orthoTestData[key] = status;
+        }
+        saveDraft();
+        renderStep();
+      });
+    });
+  }
+  if(s.type==='photo'){
+    PHOTO_SLOTS.forEach(key=>{
+      const inp = app.querySelector(`input[type=file][data-key="${key}"]`);
+      if(inp){
+        inp.addEventListener('change', (e)=>{
+          const file = e.target.files[0];
+          if(!file) return;
+          const reader = new FileReader();
+          reader.onload = ()=>{ photoData[key] = reader.result; saveDraft(); renderStep(); };
+          reader.readAsDataURL(file);
+        });
+      }
+    });
+    app.querySelectorAll('.photo-clear').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ delete photoData[btn.dataset.key]; saveDraft(); renderStep(); });
+    });
+  }
+  if(s.type==='video'){
+    VIDEO_SLOTS.forEach(key=>{
+      const inp = app.querySelector(`input[type=url][data-key="${key}"]`);
+      if(inp){
+        const commit = ()=>{
+          const v = inp.value.trim();
+          if(v){ videoData[key] = v; saveDraft(); renderStep(); }
+        };
+        inp.addEventListener('change', commit);
+        inp.addEventListener('blur', commit);
+      }
+    });
+    app.querySelectorAll('.video-clear').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ delete videoData[btn.dataset.key]; saveDraft(); renderStep(); });
+    });
+  }
+
+  setupMic(s);
+}
+
+function commitStep(s){
+  if(s.type==='text'){
+    const el = document.getElementById('ans');
+    if(el) answers[s.id] = el.value.trim();
+  } else if(s.type==='scale'){
+    const r = document.getElementById('scaleRange');
+    if(r) answers[s.id] = parseInt(r.value,10);
+    const n = document.getElementById('ansNote');
+    if(n) answers[s.id+'_note'] = n.value.trim();
+  } else if(s.type==='checklist'){
+    const boxes = app.querySelectorAll('.check-item input[type=checkbox]');
+    if(boxes.length){
+      const checked = [];
+      boxes.forEach(cb=>{ if(cb.checked) checked.push(s.options[parseInt(cb.dataset.checkIdx,10)]); });
+      answers[s.id] = checked;
+    }
+    const other = document.getElementById('ansOther');
+    if(other) answers[s.id+'_other'] = other.value.trim();
+  } else if(s.type==='rom'){
+    app.querySelectorAll('.rom-input').forEach(inp=>{
+      const key = inp.dataset.key;
+      const v = inp.value.trim();
+      if(v==='') delete romData[key]; else romData[key] = v;
+    });
+  } else if(s.type==='mmt'){
+    app.querySelectorAll('.mmt-input').forEach(inp=>{
+      const key = inp.dataset.key;
+      const v = inp.value.trim();
+      if(v==='') delete mmtData[key]; else mmtData[key] = v;
+    });
+  } else if(s.type==='progresslog'){
+    app.querySelectorAll('.progress-session').forEach(row=>{
+      const dateInp = row.querySelector('.progress-date');
+      const contentInp = row.querySelector('.progress-content');
+      const key = dateInp.dataset.key;
+      const date = dateInp.value.trim();
+      const content = contentInp.value.trim();
+      if(!date && !content){ delete progressData[key]; }
+      else { progressData[key] = {date, content}; }
+    });
+  }
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function getProgressResultLines(s){
+  const lines = [];
+  s.groups.forEach(g=>{
+    g.sessions.forEach(n=>{
+      const entry = progressData[n];
+      if(entry && (entry.date || entry.content)){
+        lines.push(`${n}回目（${entry.date||'日付未記入'}）：${entry.content||'（内容未記入）'}`);
+      }
+    });
+  });
+  return lines;
+}
+
+function getMmtResultLines(s){
+  const lines = [];
+  s.groups.forEach(g=>{
+    g.muscles.forEach(m=>{
+      const rKey = `${g.group}::${m}::R`;
+      const lKey = `${g.group}::${m}::L`;
+      if(mmtData[rKey]!==undefined && mmtData[rKey]!=='') lines.push(`${g.group}｜${m}（右）：${mmtData[rKey]}/5`);
+      if(mmtData[lKey]!==undefined && mmtData[lKey]!=='') lines.push(`${g.group}｜${m}（左）：${mmtData[lKey]}/5`);
+    });
+  });
+  return lines;
+}
+
+function getRomResultLines(s){
+  const lines = [];
+  s.groups.forEach(g=>{
+    g.items.forEach(item=>{
+      if(item.bilateral){
+        const rKey = `${g.group}::${item.name}::R`;
+        const lKey = `${g.group}::${item.name}::L`;
+        if(romData[rKey]!==undefined && romData[rKey]!=='') lines.push(`${g.group}｜${item.name}（右）：${romData[rKey]}°`);
+        if(romData[lKey]!==undefined && romData[lKey]!=='') lines.push(`${g.group}｜${item.name}（左）：${romData[lKey]}°`);
+      } else {
+        const key = `${g.group}::${item.name}`;
+        if(romData[key]!==undefined && romData[key]!=='') lines.push(`${g.group}｜${item.name}：${romData[key]}°`);
+      }
+    });
+  });
+  return lines;
+}
+
+function getOrthoResultLines(s){
+  const lines = [];
+  s.groups.forEach(g=>{
+    g.tests.forEach(t=>{
+      const key = `${g.group}::${t.name}`;
+      const status = orthoTestData[key];
+      if(status) lines.push(`${g.group}｜${t.name}：${status==='positive'?'陽性':'陰性'}`);
+    });
+  });
+  return lines;
+}
+
+const SUGGEST_REGIONS = [
+  {keywords:['首','頸','くび'], groups:['首（頸部）','頸部']},
+  {keywords:['肩'], groups:['肩','肩関節']},
+  {keywords:['腰','背中','体幹'], groups:['体幹（腰部・仙腸関節）','体幹']},
+  {keywords:['股関節','股','臀部','お尻','鼠径'], groups:['股関節']},
+  {keywords:['膝','ひざ'], groups:['膝','膝関節']},
+  {keywords:['足首','足関節','足部','くるぶし','足'], groups:['足首（足関節・足部）','足関節','足首']},
+];
+
+function getSuggestedGroupNames(){
+  const sourceText = [answers.chiefArea, answers.painArea, answers.painTissue, answers.worsen, answers.relieve, answers.patientGuess, answers.onset].filter(Boolean).join(' ');
+  const set = new Set();
+  if(sourceText){
+    SUGGEST_REGIONS.forEach(r=>{
+      if(r.keywords.some(k=>sourceText.includes(k))){
+        r.groups.forEach(g=>set.add(g));
+      }
+    });
+  }
+  return set;
+}
+
+/* 主訴・症状の記述に含まれる具体的なキーワードから、該当しそうな整形外科的テストだけを絞り込む辞書 */
+const SUGGEST_TEST_PATTERNS = [
+  {groups:['首（頸部）'], keywords:['痺れ','しびれ','放散痛','神経根','腕に痛み'], tests:['Spurling test','Jackson compression test','Distraction test（頸椎）','ULTT（上肢神経緊張テスト）']},
+  {groups:['首（頸部）'], keywords:['めまい','ふらつき','浮動感'], tests:['Vertebral artery test']},
+  {groups:['首（頸部）'], keywords:['電気','電撃'], tests:['Lhermitte sign']},
+  {groups:['首（頸部）'], keywords:['胸郭出口','腕のだるさ','脱力感'], tests:['Adson test','Wright test','Roos test（EAST）']},
+
+  {groups:['肩'], keywords:['挙上','夜間痛','上げると痛い','インピンジメント','腕が上がらない'], tests:['Neer test','Hawkins-Kennedy test']},
+  {groups:['肩'], keywords:['力こぶ','二頭筋','肘の前'], tests:['Speed test','Yergason test']},
+  {groups:['肩'], keywords:['腱板','断裂','挙げられない','棘上筋','棘下筋','肩甲下筋'], tests:['Empty can test（Jobe test）','Full can test','Drop arm test','External rotation lag sign','Belly press test（Napoleon test）','Lift-off test']},
+  {groups:['肩'], keywords:['脱臼','不安定','抜ける感じ','亜脱臼'], tests:['Apprehension test','Relocation test','Sulcus sign']},
+  {groups:['肩'], keywords:['引っかかり','クリック音','SLAP'], tests:["O'Brien test（Active compression test）"]},
+  {groups:['肩'], keywords:['肩鎖関節','鎖骨','ACジョイント'], tests:['Cross body adduction test','Scarf test']},
+
+  {groups:['体幹（腰部・仙腸関節）'], keywords:['坐骨神経','足に痺れ','下肢に痛み','放散痛','太ももの裏'], tests:['SLR（下肢伸展挙上テスト）','Bragard test','大腿神経伸展テスト（FNST）']},
+  {groups:['体幹（腰部・仙腸関節）'], keywords:['前かがみ','反らすと痛い','立ち上がり','ぎっくり'], tests:['Kemp test','Prone instability test']},
+  {groups:['体幹（腰部・仙腸関節）'], keywords:['咳','いきむ','くしゃみ'], tests:['Milgram test','Valsalva test']},
+  {groups:['体幹（腰部・仙腸関節）'], keywords:['お尻','仙腸関節','片側の腰'], tests:['Newton test','Gaenslen test','Thigh thrust test','Compression test（仙腸関節）','Distraction test（仙腸関節）']},
+
+  {groups:['股関節'], keywords:['そけい部','鼠径部','引っかかり'], tests:['Faddir test（FADIR）','Scour test（Quadrant test）','Stinchfield test']},
+  {groups:['股関節'], keywords:['歩くと傾く','跛行','ふらつく歩き方'], tests:['Trendelenburg test']},
+  {groups:['股関節'], keywords:['硬い','柔軟性','突っ張り感'], tests:['Thomas test','Ober test',"Ely's test"]},
+  {groups:['股関節'], keywords:['股関節'], tests:['Patrick test（Fabere test）','Log roll test']},
+
+  {groups:['膝'], keywords:['半月板','引っかかり','ロッキング'], tests:['McMurray test','Apley test（圧迫・牽引）','Thessaly test']},
+  {groups:['膝'], keywords:['靭帯','ぐらつき','不安定'], tests:['Lachman test','前方引き出しテスト','後方引き出しテスト','Pivot shift test','外反ストレステスト','内反ストレステスト']},
+  {groups:['膝'], keywords:['お皿','膝蓋骨','階段'], tests:['Patellar apprehension test',"Clarke's test（Patellar grind test）"]},
+  {groups:['膝'], keywords:['外側','腸脛靭帯','ランナー'], tests:['Noble compression test']},
+
+  {groups:['足首（足関節・足部）'], keywords:['捻挫','グラグラ','不安定'], tests:['前方引き出しテスト（足関節）','Talar tilt test']},
+  {groups:['足首（足関節・足部）'], keywords:['アキレス腱','踵','切れた感じ'], tests:['Thompson test']},
+  {groups:['足首（足関節・足部）'], keywords:['足底','土踏まず','朝一歩目'], tests:['Windlass test']},
+  {groups:['足首（足関節・足部）'], keywords:['足根管','痺れ','しびれ'], tests:['Tinel sign（足根管）']},
+];
+
+function getSuggestedTestKeys(){
+  const sourceText = [answers.chiefArea, answers.painArea, answers.painTissue, answers.worsen, answers.relieve, answers.patientGuess, answers.onset].filter(Boolean).join(' ');
+  const set = new Set();
+  if(sourceText){
+    SUGGEST_TEST_PATTERNS.forEach(p=>{
+      if(p.keywords.some(k=>sourceText.includes(k))){
+        p.groups.forEach(g=>{
+          p.tests.forEach(t=>set.add(`${g}::${t}`));
+        });
+      }
+    });
+  }
+  return set;
+}
+
+function generateObjectiveSummaryText(){
+  const blocks = [];
+
+  const alignStep = STEPS.find(s=>s.id==='alignmentSpine');
+  if(alignStep){
+    const val = getDisplayValue(alignStep);
+    if(val) blocks.push(`【アライメント異常】\n${val}`);
+  }
+
+  if(answers.painArea) blocks.push(`【疼痛部位】\n${answers.painArea}`);
+  if(answers.painTissue) blocks.push(`【圧痛部位・発痛組織】\n${answers.painTissue}`);
+
+  const orthoStep = STEPS.find(s=>s.id==='orthoTest');
+  if(orthoStep){
+    const posLines = getOrthoResultLines(orthoStep).filter(l=>l.endsWith('：陽性'));
+    if(posLines.length) blocks.push(`【疼痛誘発テスト陽性所見】\n${posLines.map(l=>'・'+l).join('\n')}`);
+  }
+
+  const romStep = STEPS.find(s=>s.id==='rom');
+  if(romStep){
+    const romLines = getRomResultLines(romStep);
+    if(romLines.length) blocks.push(`【ROM測定値】\n${romLines.map(l=>'・'+l).join('\n')}`);
+  }
+
+  const mmtStep = STEPS.find(s=>s.id==='mmt');
+  if(mmtStep){
+    const mmtLines = getMmtResultLines(mmtStep);
+    if(mmtLines.length) blocks.push(`【MMT測定値】\n${mmtLines.map(l=>'・'+l).join('\n')}`);
+  }
+
+  if(answers.reflex) blocks.push(`【腱反射】\n${answers.reflex}`);
+
+  return blocks.join('\n\n');
+}
+
+function getDisplayValue(s){
+  if(s.type==='scale'){
+    return answers[s.id]!==undefined ? `${answers[s.id]} / 10${answers[s.id+'_note']?'　'+answers[s.id+'_note']:''}` : '';
+  }
+  if(s.type==='checklist'){
+    const checked = answers[s.id] || [];
+    const other = answers[s.id+'_other'] || '';
+    const parts = [...checked];
+    if(other) parts.push(`その他：${other}`);
+    return parts.join('、');
+  }
+  return answers[s.id] || '';
+}
+
+function youtubeEmbedUrl(url){
+  if(!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/))([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+function micIcon(){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+}
+
+/* ========================= 音声入力 ========================= */
+function setupMic(step){
+  const micBtn = document.getElementById('micBtn');
+  if(!micBtn) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    micBtn.style.opacity = '.35';
+    micBtn.title = 'このブラウザは音声入力に対応していません';
+    return;
+  }
+  let rec;
+  micBtn.addEventListener('click', ()=>{
+    const targetId = step.type==='scale' ? 'ansNote' : (step.type==='checklist' ? 'ansOther' : 'ans');
+    const target = document.getElementById(targetId);
+    const status = document.getElementById('statusLine');
+    if(recognizing){ if(rec) rec.stop(); return; }
+    rec = new SpeechRecognition();
+    rec.lang = 'ja-JP';
+    rec.interimResults = true;
+    rec.continuous = true;
+    let finalText = target.value ? target.value + ' ' : '';
+    rec.onstart = ()=>{ recognizing = true; micBtn.classList.add('rec'); status.textContent = '録音中…もう一度タップで停止'; };
+    rec.onresult = (e)=>{
+      let interim = '';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const t = e.results[i][0].transcript;
+        if(e.results[i].isFinal){ finalText += t; } else { interim += t; }
+      }
+      target.value = finalText + interim;
+    };
+    rec.onerror = ()=>{ status.textContent = 'うまく聞き取れませんでした。もう一度お試しください'; };
+    rec.onend = ()=>{ recognizing = false; micBtn.classList.remove('rec'); if(status.textContent.startsWith('録音中')) status.textContent = ''; target.value = finalText.trim(); };
+    rec.start();
+  });
+}
+
+/* ========================= render: summary ========================= */
+function renderSummary(){
+  let lastPart = null;
+  let itemsHtml = '';
+  STEPS.forEach((s, i)=>{
+    if(s.part !== lastPart){
+      itemsHtml += `<div class="sum-part">${s.part}</div>`;
+      lastPart = s.part;
+    }
+    if(s.type==='photo'){
+      const has = PHOTO_SLOTS.some(k=>photoData[k]);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${has ? `<div class="sum-photos">${PHOTO_SLOTS.filter(k=>photoData[k]).map(k=>`<img src="${photoData[k]}">`).join('')}</div>` : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    if(s.type==='video'){
+      const found = VIDEO_SLOTS.filter(k=>videoData[k]);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${found.length ? found.map(k=>`<div class="sum-a">${VIDEO_SLOT_LABELS[k]}：<a href="${escapeHtml(videoData[k])}" target="_blank" rel="noopener">${escapeHtml(videoData[k])}</a></div>`).join('') : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    if(s.type==='orthotest'){
+      const lines = getOrthoResultLines(s);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${lines.length ? lines.map(l=>`<div class="sum-a">${escapeHtml(l)}</div>`).join('') : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    if(s.type==='rom'){
+      const lines = getRomResultLines(s);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${lines.length ? lines.map(l=>`<div class="sum-a">${escapeHtml(l)}</div>`).join('') : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    if(s.type==='mmt'){
+      const lines = getMmtResultLines(s);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${lines.length ? lines.map(l=>`<div class="sum-a">${escapeHtml(l)}</div>`).join('') : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    if(s.type==='progresslog'){
+      const lines = getProgressResultLines(s);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        ${lines.length ? lines.map(l=>`<div class="sum-a">${escapeHtml(l)}</div>`).join('') : `<div class="sum-a empty">未入力</div>`}
+      </div>`;
+      return;
+    }
+    const val = getDisplayValue(s);
+    itemsHtml += `<div class="sum-item">
+      <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+      <div class="sum-a ${val?'':'empty'}">${val ? escapeHtml(val) : '未入力'}</div>
+    </div>`;
+  });
+
+  app.innerHTML = `
+    <div class="card">
+      <div class="part-tag">確認・共有</div>
+      <div class="q-title" style="margin-bottom:14px;">入力内容の確認</div>
+      ${itemsHtml}
+    </div>
+    <div class="action-bar">
+      <div class="nav-row">
+        <button class="btn btn-ghost" id="continueBtn">入力に戻る</button>
+        <button class="btn btn-primary" id="copyBtn">全文コピー</button>
+      </div>
+      <div class="nav-row" style="margin-top:10px;">
+        <button class="btn btn-ghost" id="pdfBtn">PDFで保存</button>
+        <button class="btn btn-ghost" id="pptxBtn">PowerPointで保存</button>
+      </div>
+      <div class="nav-row" style="margin-top:10px;">
+        <button class="btn btn-ghost" id="toRecordListBtn">記録一覧に戻る</button>
+        <button class="btn btn-ghost" id="resetBtn" style="color:var(--danger);">この記録を削除</button>
+      </div>
+      <div class="copied-msg" id="copiedMsg"></div>
+      <div class="export-progress" id="exportMsg"></div>
+    </div>
+  `;
+
+  app.querySelectorAll('.sum-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ idx = parseInt(btn.dataset.idx,10); renderStep(); });
+  });
+  document.getElementById('continueBtn').onclick = ()=>{ idx = findFirstUnanswered(); if(idx>=STEPS.length) idx = STEPS.length-1; renderStep(); };
+  document.getElementById('copyBtn').onclick = copyReport;
+  document.getElementById('pdfBtn').onclick = exportPDF;
+  document.getElementById('pptxBtn').onclick = exportPPTX;
+  document.getElementById('toRecordListBtn').onclick = ()=>{ saveDraft(); idx = -1; renderStart(); };
+  document.getElementById('resetBtn').onclick = async ()=>{
+    if(confirm('この記録をすべて削除します。よろしいですか？（他の記録は残ります）')){
+      await clearDraft(); idx = -1; renderStart();
+    }
+  };
+}
+
+function buildReportText(){
+  let lastPart = null;
+  let lines = [`【症例評価・問診】MSMメソッド-X-`];
+  STEPS.forEach(s=>{
+    if(s.part !== lastPart){ lines.push(''); lines.push(`■ ${s.part}`); lastPart = s.part; }
+    if(s.type==='photo'){
+      const n = PHOTO_SLOTS.filter(k=>photoData[k]).length;
+      lines.push(`・${s.title}：写真${n}枚（コピーには含まれません／印刷・PDF保存でご確認ください）`);
+      return;
+    }
+    if(s.type==='video'){
+      const found = VIDEO_SLOTS.filter(k=>videoData[k]);
+      if(found.length){
+        lines.push(`・${s.title}：`);
+        found.forEach(k=>lines.push(`　- ${VIDEO_SLOT_LABELS[k]}：${videoData[k]}`));
+      }
+      return;
+    }
+    if(s.type==='orthotest'){
+      const orthoLines = getOrthoResultLines(s);
+      if(orthoLines.length){
+        lines.push(`・${s.title}：`);
+        orthoLines.forEach(l=>lines.push(`　- ${l}`));
+      }
+      return;
+    }
+    if(s.type==='rom'){
+      const romLines = getRomResultLines(s);
+      if(romLines.length){
+        lines.push(`・${s.title}：`);
+        romLines.forEach(l=>lines.push(`　- ${l}`));
+      }
+      return;
+    }
+    if(s.type==='mmt'){
+      const mmtLines = getMmtResultLines(s);
+      if(mmtLines.length){
+        lines.push(`・${s.title}：`);
+        mmtLines.forEach(l=>lines.push(`　- ${l}`));
+      }
+      return;
+    }
+    if(s.type==='progresslog'){
+      const progLines = getProgressResultLines(s);
+      if(progLines.length){
+        lines.push(`・${s.title}：`);
+        progLines.forEach(l=>lines.push(`　- ${l}`));
+      }
+      return;
+    }
+    const val = getDisplayValue(s);
+    if(val) lines.push(`・${s.title}：${val}`);
+  });
+  return lines.join('\n');
+}
+
+function copyReport(){
+  const text = buildReportText();
+  navigator.clipboard.writeText(text).then(()=>{
+    document.getElementById('copiedMsg').textContent = 'コピーしました！LINE等に貼り付けてください';
+    setTimeout(()=>{ const m=document.getElementById('copiedMsg'); if(m) m.textContent=''; }, 3000);
+  }).catch(()=>{
+    prompt('以下を長押しコピーしてください', text);
+  });
+}
+
+function buildPrintAreaHtml(){
+  let lastPart = null;
+  let html = `<h1>症例評価・問診　MSMメソッド-X-</h1>`;
+  STEPS.forEach(s=>{
+    if(s.part !== lastPart){ html += `<h2>${s.part}</h2>`; lastPart = s.part; }
+    if(s.type==='photo'){
+      const imgs = PHOTO_SLOTS.filter(k=>photoData[k]);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      if(imgs.length){
+        html += `<div class="pimgs">${imgs.map(k=>`<img src="${photoData[k]}">`).join('')}</div>`;
+      } else {
+        html += `<div class="pa">未入力</div>`;
+      }
+      return;
+    }
+    if(s.type==='video'){
+      const vids = VIDEO_SLOTS.filter(k=>videoData[k]);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      html += `<div class="pa">${vids.length ? vids.map(k=>`${VIDEO_SLOT_LABELS[k]}：${escapeHtml(videoData[k])}`).join('\n') : '未入力'}</div>`;
+      return;
+    }
+    if(s.type==='orthotest'){
+      const orthoLines = getOrthoResultLines(s);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      html += `<div class="pa">${orthoLines.length ? orthoLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      return;
+    }
+    if(s.type==='rom'){
+      const romLines = getRomResultLines(s);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      html += `<div class="pa">${romLines.length ? romLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      return;
+    }
+    if(s.type==='mmt'){
+      const mmtLines = getMmtResultLines(s);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      html += `<div class="pa">${mmtLines.length ? mmtLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      return;
+    }
+    if(s.type==='progresslog'){
+      const progLines = getProgressResultLines(s);
+      html += `<div class="pq">${s.section}｜${s.title}</div>`;
+      html += `<div class="pa">${progLines.length ? progLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      return;
+    }
+    const val = getDisplayValue(s);
+    html += `<div class="pq">${s.section}｜${s.title}</div><div class="pa">${val ? escapeHtml(val) : '未入力'}</div>`;
+  });
+  document.getElementById('printArea').innerHTML = html;
+}
+
+function todayFileStr(){
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function setExportMsg(text){
+  const el = document.getElementById('exportMsg');
+  if(el) el.textContent = text;
+}
+
+/* ========================= PDF出力（背景白・全ページ右下にロゴ） ========================= */
+function exportPDF(){
+  if(!window.jspdf || !window.html2canvas){
+    alert('PDF生成ライブラリの読み込みに失敗しました。ネット接続をご確認のうえ、公開後のURLでお試しください。');
+    return;
+  }
+  setExportMsg('PDFを作成中…');
+  buildPrintAreaHtml();
+  const element = document.getElementById('printArea');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const imgW = 90;
+  const imgH = imgW * LOGO_ASPECT;
+
+  doc.html(element, {
+    x: 24,
+    y: 24,
+    width: pageW - 48,
+    windowWidth: 760,
+    html2canvas: { scale: 0.75, backgroundColor: '#ffffff', useCORS: true },
+    autoPaging: 'text',
+    callback: function(doc){
+      const pageCount = doc.internal.getNumberOfPages();
+      const wmW = pageW * 0.62;
+      const wmH = wmW * WATERMARK_ASPECT;
+      for(let p=1; p<=pageCount; p++){
+        doc.setPage(p);
+        if(doc.setGState && doc.GState){
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: 0.10 }));
+          doc.addImage(WATERMARK_DATA_URI, 'PNG', (pageW - wmW)/2, (pageH - wmH)/2, wmW, wmH);
+          doc.restoreGraphicsState();
+        }
+        doc.setFillColor(255,255,255);
+        doc.addImage(LOGO_DATA_URI, 'PNG', pageW - imgW - 24, pageH - imgH - 20, imgW, imgH);
+      }
+      doc.save(`症例評価問診_${todayFileStr()}.pdf`);
+      setExportMsg('PDFを保存しました');
+      setTimeout(()=>setExportMsg(''), 3000);
+    }
+  });
+}
+
+/* ========================= PowerPoint出力（背景白・全スライド右下にロゴ） ========================= */
+function addPptxLogo(slide){
+  slide.addImage({ data: LOGO_DATA_URI, x: 8.5, y: 5.25, w: 1.2, h: 1.2*LOGO_ASPECT });
+}
+
+function addPptxBulletSlide(pptx, title, lines){
+  const chunkSize = 20;
+  const chunks = [];
+  for(let i=0;i<lines.length;i+=chunkSize){ chunks.push(lines.slice(i,i+chunkSize)); }
+  if(chunks.length===0) chunks.push([]);
+  chunks.forEach((chunk, ci)=>{
+    const slide = pptx.addSlide();
+    slide.background = { color:'FFFFFF' };
+    const titleText = chunks.length>1 ? `${title}（${ci+1}/${chunks.length}）` : title;
+    slide.addText(titleText, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
+    if(chunk.length){
+      slide.addText(chunk.map(l=>({ text: l, options:{ bullet:true, breakLine:true } })), { x:0.5, y:0.9, w:9, h:4.3, fontSize:12, color:'22303A', valign:'top' });
+    } else {
+      slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
+    }
+    addPptxLogo(slide);
+  });
+}
+
+function exportPPTX(){
+  if(!window.PptxGenJS){
+    alert('PowerPoint生成ライブラリの読み込みに失敗しました。ネット接続をご確認のうえ、公開後のURLでお試しください。');
+    return;
+  }
+  setExportMsg('PowerPointを作成中…');
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_16x9';
+
+  const cover = pptx.addSlide();
+  cover.background = { color:'FFFFFF' };
+  cover.addText('症例評価・問診', { x:0.5, y:1.9, w:9, h:1, fontSize:32, bold:true, color:'22303A', align:'center' });
+  cover.addText('MSMメソッド-X-', { x:0.5, y:2.8, w:9, h:0.6, fontSize:16, color:'6B7A86', align:'center' });
+  if(answers.date) cover.addText(answers.date, { x:0.5, y:3.3, w:9, h:0.5, fontSize:12, color:'6B7A86', align:'center' });
+  addPptxLogo(cover);
+
+  let lastSection = null;
+  let sectionLines = [];
+  let sectionTitle = '';
+
+  function flush(){
+    if(sectionTitle) addPptxBulletSlide(pptx, sectionTitle, sectionLines);
+    sectionLines = [];
+    sectionTitle = '';
+  }
+
+  STEPS.forEach(s=>{
+    if(s.type==='photo'){
+      flush();
+      lastSection = null;
+      const found = PHOTO_SLOTS.filter(k=>photoData[k]);
+      const slide = pptx.addSlide();
+      slide.background = { color:'FFFFFF' };
+      slide.addText(s.section, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
+      if(found.length){
+        const positions = [{x:0.5,y:0.9},{x:5.1,y:0.9},{x:0.5,y:3.15},{x:5.1,y:3.15}];
+        found.slice(0,4).forEach((k,idx)=>{
+          slide.addImage({ data: photoData[k], x:positions[idx].x, y:positions[idx].y, w:4.3, h:2.1, sizing:{ type:'contain', w:4.3, h:2.1 } });
+          slide.addText(k, { x:positions[idx].x, y:positions[idx].y+2.15, w:4.3, h:0.3, fontSize:10, color:'6B7A86' });
+        });
+      } else {
+        slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
+      }
+      addPptxLogo(slide);
+      return;
+    }
+
+    if(s.section !== lastSection){
+      flush();
+      lastSection = s.section;
+      sectionTitle = s.section;
+    }
+
+    if(s.type==='video'){
+      const found = VIDEO_SLOTS.filter(k=>videoData[k]);
+      if(found.length){
+        sectionLines.push(s.title);
+        found.forEach(k=>sectionLines.push(`　${VIDEO_SLOT_LABELS[k]}：${videoData[k]}`));
+      }
+      return;
+    }
+    if(s.type==='orthotest'){ sectionLines.push(...getOrthoResultLines(s)); return; }
+    if(s.type==='rom'){ sectionLines.push(...getRomResultLines(s)); return; }
+    if(s.type==='mmt'){ sectionLines.push(...getMmtResultLines(s)); return; }
+    if(s.type==='progresslog'){ sectionLines.push(...getProgressResultLines(s)); return; }
+    const val = getDisplayValue(s);
+    if(val) sectionLines.push(`${s.title}：${val}`);
+  });
+  flush();
+
+  pptx.writeFile({ fileName: `症例評価問診_${todayFileStr()}.pptx` }).then(()=>{
+    setExportMsg('PowerPointを保存しました');
+    setTimeout(()=>setExportMsg(''), 3000);
+  });
+}
+
+/* ========================= init ========================= */
+renderTeamSelect();
+</script>
+</body>
+</html>
