@@ -752,25 +752,34 @@ function todayStr(){
 const app = document.getElementById('app');
 
 /* ========================= render: 合言葉 ========================= */
-function authErrorMessage(code){
-  switch(code){
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-    case 'auth/invalid-login-credentials':
-      return '合言葉が違います。';
-    case 'auth/user-not-found':
-      return 'アカウントが未作成です。管理者にご連絡ください。';
-    case 'auth/too-many-requests':
-      return '試行回数が多すぎます。しばらく時間をおいてからお試しください。';
-    case 'auth/network-request-failed':
-      return '通信に失敗しました。電波状況をご確認ください。';
-    case 'auth/operation-not-allowed':
-    case 'auth/configuration-not-found':
-    case 'auth/internal-error':
-      return 'ログイン設定が未完了か、一時的な障害です。時間をおいても直らない場合は管理者にご連絡ください。';
-    default:
-      return `入れませんでした。${code ? '（' + code + '）' : ''}`;
+/* SDK v8 は、メール列挙保護で導入された新しいサーバー応答
+   （INVALID_LOGIN_CREDENTIALS）を認識できず auth/internal-error に丸めてしまい、
+   生のJSONを message に入れてきます。そのため code だけでなく本文も見て判定します。 */
+function authErrorMessage(err){
+  const code = (err && err.code) || '';
+  const raw = (err && err.message) || '';
+  const has = s => raw.indexOf(s) !== -1;
+
+  if(code === 'auth/wrong-password' || code === 'auth/invalid-credential'
+     || code === 'auth/invalid-login-credentials' || code === 'auth/user-not-found'
+     || has('INVALID_LOGIN_CREDENTIALS') || has('INVALID_PASSWORD')
+     || has('EMAIL_NOT_FOUND') || has('MISSING_PASSWORD') || has('INVALID_EMAIL')){
+    return '合言葉が違います。';
   }
+  if(code === 'auth/too-many-requests' || has('TOO_MANY_ATTEMPTS')){
+    return '試行回数が多すぎます。しばらく時間をおいてからお試しください。';
+  }
+  if(code === 'auth/network-request-failed'){
+    return '通信に失敗しました。電波状況をご確認ください。';
+  }
+  if(code === 'auth/user-disabled' || has('USER_DISABLED')){
+    return 'このアカウントは無効になっています。管理者にご連絡ください。';
+  }
+  if(code === 'auth/operation-not-allowed' || code === 'auth/configuration-not-found'
+     || has('OPERATION_NOT_ALLOWED') || has('CONFIGURATION_NOT_FOUND')){
+    return 'ログイン設定が未完了です。管理者にご連絡ください。';
+  }
+  return `入れませんでした。${code ? '（' + code + '）' : ''}`;
 }
 
 function renderPassGate(){
@@ -798,7 +807,7 @@ function renderPassGate(){
       await auth.signInWithEmailAndPassword(AUTH_EMAIL, pass);
       /* 成功時は onAuthStateChanged が画面を切り替えます */
     }catch(e){
-      errEl.textContent = authErrorMessage(e && e.code ? e.code : '');
+      errEl.textContent = authErrorMessage(e);
       btn.disabled = false;
       btn.textContent = '入る';
       input.value = '';
