@@ -326,10 +326,16 @@
     cursor:pointer;
   }
 
-  #printArea{
+  /* 画面外に逃がすのはホスト側。#printArea 自体には position を付けない
+     （jsPDFのhtml()は #printArea を複製して別コンテナに入れるため、
+       id側にabsolute配置を書くと複製先でも画面外に飛び、PDFが白紙になる） */
+  #printHost{
     position:absolute;
     top:0;
     left:-99999px;
+    width:820px;
+  }
+  #printArea{
     width:760px;
     background:#ffffff;
     color:#22303a;
@@ -354,11 +360,11 @@
 
 <div class="wrap" id="app"></div>
 
-<div id="printArea"></div>
+<div id="printHost"><div id="printArea"></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -1740,38 +1746,110 @@ function exportPDF(){
   buildPrintAreaHtml();
   const element = document.getElementById('printArea');
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','pt','a4');
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const imgW = 90;
-  const imgH = imgW * LOGO_ASPECT;
 
-  doc.html(element, {
-    x: 24,
-    y: 24,
-    width: pageW - 48,
-    windowWidth: 760,
-    html2canvas: { scale: 0.75, backgroundColor: '#ffffff', useCORS: true },
-    autoPaging: 'text',
-    callback: function(doc){
-      const pageCount = doc.internal.getNumberOfPages();
-      const wmW = pageW * 0.62;
-      const wmH = wmW * WATERMARK_ASPECT;
-      for(let p=1; p<=pageCount; p++){
-        doc.setPage(p);
-        if(doc.setGState && doc.GState){
-          doc.saveGraphicsState();
-          doc.setGState(new doc.GState({ opacity: 0.10 }));
-          doc.addImage(WATERMARK_DATA_URI, 'PNG', (pageW - wmW)/2, (pageH - wmH)/2, wmW, wmH);
-          doc.restoreGraphicsState();
-        }
-        doc.setFillColor(255,255,255);
-        doc.addImage(LOGO_DATA_URI, 'PNG', pageW - imgW - 24, pageH - imgH - 20, imgW, imgH);
+  /* jsPDFのdoc.html()はテキストを内蔵欧文フォントで描画するため日本語が文字化けする。
+     html2canvasでページ全体を画像化し、A4サイズに切り分けて貼る方式にする。 */
+  const srcW = element.offsetWidth || 760;
+  const srcH = element.scrollHeight;
+  const MAX_AREA = 12000000; // iOS Safariのcanvas上限対策
+  let scale = 2;
+  if(srcW * srcH * scale * scale > MAX_AREA){
+    scale = Math.max(1, Math.sqrt(MAX_AREA / (srcW * srcH)));
+  }
+
+  html2canvas(element, {
+    scale: scale,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    windowWidth: srcW,
+    scrollX: 0,
+    scrollY: 0
+  }).then(canvas=>{
+    const doc = new jsPDF('p','pt','a4');
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const logoW = 90;
+    const logoH = logoW * LOGO_ASPECT;
+    const margin = 24;
+    const contentW = pageW - margin * 2;
+    const contentTop = margin;
+    const contentH = pageH - margin - (logoH + 32); // 下部のロゴ帯を空ける
+
+    const pxPerPt = canvas.width / contentW;          // 画像1pt当たりのピクセル数
+    const slicePx = Math.max(1, Math.floor(contentH * pxPerPt));
+
+    const wmW = pageW * 0.62;
+    const wmH = wmW * WATERMARK_ASPECT;
+    const slice = document.createElement('canvas');
+    const sctx = slice.getContext('2d');
+    const srcCtx = canvas.getContext('2d');
+
+    /* 行の途中で改ページされないよう、切れ目の少し手前にある
+       「横一列すべて白」の位置を探してそこで切る */
+    function sliceHeightAt(startY){
+      const rest = canvas.height - startY;
+      if(rest <= slicePx) return rest;
+      const bandH = Math.floor(slicePx * 0.15);
+      const bandTop = startY + slicePx - bandH;
+      let data;
+      try{
+        data = srcCtx.getImageData(0, bandTop, canvas.width, bandH).data;
+      }catch(e){
+        return slicePx;
       }
-      doc.save(`症例評価問診_${todayFileStr()}.pdf`);
-      setExportMsg('PDFを保存しました');
-      setTimeout(()=>setExportMsg(''), 3000);
+      for(let y = bandH - 1; y >= 0; y--){
+        let blank = true;
+        for(let x = 0; x < canvas.width; x += 3){
+          const i = (y * canvas.width + x) * 4;
+          if(data[i] < 245 || data[i+1] < 245 || data[i+2] < 245){ blank = false; break; }
+        }
+        if(blank) return (bandTop + y) - startY;
+      }
+      return slicePx;
     }
+
+    let sy = 0;
+    let first = true;
+    while(sy < canvas.height){
+      if(!first) doc.addPage();
+      first = false;
+
+      // 背景（透過部分が黒くならないよう白で塗る）
+      doc.setFillColor(255,255,255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+
+      const sh = sliceHeightAt(sy);
+      slice.width = canvas.width;
+      slice.height = sh;
+      sctx.fillStyle = '#ffffff';
+      sctx.fillRect(0, 0, slice.width, slice.height);
+      sctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
+
+      doc.addImage(
+        slice.toDataURL('image/jpeg', 0.92), 'JPEG',
+        margin, contentTop, contentW, sh / pxPerPt,
+        undefined, 'FAST'
+      );
+
+      // 透かしは本文画像が不透明なため、上から薄く重ねる
+      if(doc.setGState && doc.GState){
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.10 }));
+        doc.addImage(WATERMARK_DATA_URI, 'PNG', (pageW - wmW)/2, (pageH - wmH)/2, wmW, wmH);
+        doc.restoreGraphicsState();
+      }
+
+      doc.addImage(LOGO_DATA_URI, 'PNG', pageW - logoW - margin, pageH - logoH - 20, logoW, logoH);
+      sy += sh;
+    }
+
+    doc.save(`症例評価問診_${todayFileStr()}.pdf`);
+    setExportMsg('PDFを保存しました');
+    setTimeout(()=>setExportMsg(''), 3000);
+  }).catch(err=>{
+    console.error(err);
+    setExportMsg('');
+    alert('PDFの作成に失敗しました。時間をおいて再度お試しください。');
   });
 }
 
@@ -1872,6 +1950,10 @@ function exportPPTX(){
   pptx.writeFile({ fileName: `症例評価問診_${todayFileStr()}.pptx` }).then(()=>{
     setExportMsg('PowerPointを保存しました');
     setTimeout(()=>setExportMsg(''), 3000);
+  }).catch(err=>{
+    console.error(err);
+    setExportMsg('');
+    alert('PowerPointの作成に失敗しました。時間をおいて再度お試しください。');
   });
 }
 
