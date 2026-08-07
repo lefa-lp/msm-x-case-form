@@ -1094,7 +1094,7 @@ function renderStep(){
       ${PHOTO_SLOTS.map(key=>`
         <div class="photo-slot">
           <label class="name">${key}</label>
-          ${photoData[key] ? `<img src="${photoData[key]}"><button class="photo-clear" data-key="${key}">削除</button>` : `<input type="file" accept="image/*" capture="environment" data-key="${key}">`}
+          ${photoData[key] ? `<img src="${photoData[key]}"><button class="photo-clear" data-key="${key}">削除</button>` : `<input type="file" accept="image/*" data-key="${key}">`}
         </div>
       `).join('')}
     </div>`;
