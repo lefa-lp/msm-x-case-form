@@ -289,6 +289,43 @@
   .cloud-note{font-size:12px;color:var(--amber);margin-top:6px;}
   .cloud-note.ok{color:var(--accent);}
 
+  .pass-input{
+    width:100%;
+    padding:14px 12px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    font-size:16px;
+    text-align:center;
+    letter-spacing:.08em;
+    margin:4px 0 14px;
+  }
+  .pass-input:focus{outline:none;border-color:var(--accent);}
+  .pass-error{font-size:13px;color:var(--danger);margin:0 0 12px;min-height:18px;}
+  .pass-btn{
+    width:100%;
+    padding:16px 0;
+    border-radius:14px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .pass-btn:active{background:var(--accent2);}
+  .pass-btn[disabled]{opacity:.55;cursor:default;}
+  .logout-btn{
+    margin-top:14px;
+    background:none;
+    border:none;
+    color:var(--sub);
+    font-size:12px;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+
   #printArea{
     position:absolute;
     top:0;
@@ -323,6 +360,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
@@ -542,11 +580,24 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "624858098736",
   appId: "1:624858098736:web:ed450ce565ca1d6cfa91f5"
 };
+/* ---- 合言葉（全チーム共通） ----
+   合言葉は「共有アカウントのパスワード」として Firebase 認証で照合します。
+   照合はFirebaseのサーバー側で行われるため、合言葉はこのファイルには含まれません。
+   Firebase コンソールでの準備:
+   1) Authentication → Sign-in method で「メール/パスワード」を有効化
+   2) Users → ユーザーを追加 で下記 AUTH_EMAIL のアカウントを作成し、
+      パスワードに配布したい合言葉（6文字以上）を設定
+   3) Firestore Database → ルール に SECURITY-RULES.txt の内容を貼り付けて公開
+   合言葉を変更したいときは、コンソールで上記アカウントのパスワードを変更するだけです。 */
+const AUTH_EMAIL = 'team@msm-x-4f7d9.firebaseapp.com';
+
 let cloudReady = false;
 let db = null;
+let auth = null;
 try{
   if(window.firebase && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY'){
     firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
     db = firebase.firestore();
     cloudReady = true;
   }
@@ -700,6 +751,66 @@ function todayStr(){
 
 const app = document.getElementById('app');
 
+/* ========================= render: 合言葉 ========================= */
+function authErrorMessage(code){
+  switch(code){
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+      return '合言葉が違います。';
+    case 'auth/user-not-found':
+      return 'アカウントが未作成です。管理者にご連絡ください。';
+    case 'auth/too-many-requests':
+      return '試行回数が多すぎます。しばらく時間をおいてからお試しください。';
+    case 'auth/network-request-failed':
+      return '通信に失敗しました。電波状況をご確認ください。';
+    case 'auth/operation-not-allowed':
+    case 'auth/configuration-not-found':
+    case 'auth/internal-error':
+      return 'ログイン設定が未完了か、一時的な障害です。時間をおいても直らない場合は管理者にご連絡ください。';
+    default:
+      return `入れませんでした。${code ? '（' + code + '）' : ''}`;
+  }
+}
+
+function renderPassGate(){
+  app.innerHTML = `
+    <div class="card start-card">
+      <div class="part-tag">MSMメソッド-X-　症例評価・問診</div>
+      <p>合言葉を入力してください。</p>
+      <input type="password" id="passInput" class="pass-input" placeholder="合言葉" autocomplete="current-password">
+      <p class="pass-error" id="passError"></p>
+      <button class="pass-btn" id="passSubmit">入る</button>
+      <p class="cloud-note ok">🔗 合言葉を知っているメンバーだけが閲覧・保存できます</p>
+    </div>
+  `;
+  const input = document.getElementById('passInput');
+  const errEl = document.getElementById('passError');
+  const btn = document.getElementById('passSubmit');
+
+  async function submit(){
+    const pass = input.value;
+    if(!pass){ errEl.textContent = '合言葉を入力してください。'; return; }
+    btn.disabled = true;
+    btn.textContent = '確認中…';
+    errEl.textContent = '';
+    try{
+      await auth.signInWithEmailAndPassword(AUTH_EMAIL, pass);
+      /* 成功時は onAuthStateChanged が画面を切り替えます */
+    }catch(e){
+      errEl.textContent = authErrorMessage(e && e.code ? e.code : '');
+      btn.disabled = false;
+      btn.textContent = '入る';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', ev=>{ if(ev.key === 'Enter') submit(); });
+  input.focus();
+}
+
 /* ========================= render: チーム選択 ========================= */
 function renderTeamSelect(){
   app.innerHTML = `
@@ -710,6 +821,7 @@ function renderTeamSelect(){
         ${TEAM_LIST.map(t=>`<button class="team-btn" data-team="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
       </div>
       ${!cloudReady ? `<p class="cloud-note">⚠ クラウド共有が未設定のため、現在はこの端末内にのみ保存されます。</p>` : `<p class="cloud-note ok">🔗 チーム内で共有されます</p>`}
+      ${cloudReady ? `<button class="logout-btn" id="logoutBtn">合言葉を入力しなおす</button>` : ''}
     </div>
   `;
   app.querySelectorAll('.team-btn').forEach(btn=>{
@@ -719,6 +831,8 @@ function renderTeamSelect(){
       renderStart();
     });
   });
+  const logoutBtn = document.getElementById('logoutBtn');
+  if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ auth.signOut(); });
 }
 
 /* ========================= render: 記録一覧 ========================= */
@@ -1753,7 +1867,30 @@ function exportPPTX(){
 }
 
 /* ========================= init ========================= */
-renderTeamSelect();
+function boot(){
+  /* クラウド未設定時は従来どおり端末内保存で動作（合言葉なし） */
+  if(!cloudReady){ renderTeamSelect(); return; }
+
+  app.innerHTML = `<div class="card start-card"><p>読み込み中…</p></div>`;
+
+  let signedInRendered = false;
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      if(signedInRendered) return;
+      signedInRendered = true;
+      renderTeamSelect();
+    }else{
+      signedInRendered = false;
+      currentTeam = null;
+      currentRecordId = null;
+      currentRecordLabel = '';
+      idx = -1;
+      answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
+      renderPassGate();
+    }
+  });
+}
+boot();
 </script>
 </body>
 </html>

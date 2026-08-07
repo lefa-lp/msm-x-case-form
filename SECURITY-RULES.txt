@@ -1,0 +1,37 @@
+/*
+ * Firestore セキュリティルール
+ *
+ * 貼り付け先:
+ *   Firebase コンソール → Firestore Database → 「ルール」タブ
+ *   既存の内容をすべて消して、下記（この行より下）を貼り付け →「公開」
+ *
+ * 効果:
+ *   合言葉で共有アカウントにログインした人だけが症例データを読み書きできます。
+ *   ログインしていないアクセスは、URLやプロジェクトIDを知っていても全て拒否されます。
+ *
+ * 注意:
+ *   下の team@msm-x-4f7d9.firebaseapp.com は index.html の AUTH_EMAIL と
+ *   完全に一致している必要があります。片方だけ変更すると誰もログインできなくなります。
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 合言葉で共有アカウントにログイン済みかどうか
+    function isTeamMember() {
+      return request.auth != null
+          && request.auth.token.email == 'team@msm-x-4f7d9.firebaseapp.com';
+    }
+
+    // 症例記録（チームC / チームD）
+    match /teams/{team}/records/{recordId} {
+      allow read, write: if isTeamMember();
+    }
+
+    // 上記以外へのアクセスはすべて拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
