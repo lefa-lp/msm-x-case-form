@@ -359,6 +359,15 @@
   #printArea .pimgs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
   #printArea .pimgs img{width:120px;border-radius:6px;}
   .export-progress{text-align:center;font-size:12.5px;color:var(--sub);margin-top:6px;min-height:16px;}
+  /* 保存状態の通知（無言で保存に失敗するのを防ぐ） */
+  .save-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9999;
+    max-width:min(560px,calc(100% - 24px));padding:10px 16px;border-radius:10px;
+    font-size:13px;line-height:1.55;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);
+    opacity:0;pointer-events:none;transition:opacity .18s;}
+  .save-toast.show{opacity:1;}
+  .save-toast.saving{background:#eef2f7;color:#4a5568;}
+  .save-toast.ok{background:#e7f6ec;color:#1c6b39;}
+  .save-toast.err{background:#fdeaea;color:#a12020;font-weight:600;}
 </style>
 </head>
 <body>
@@ -371,6 +380,8 @@
 <div class="wrap" id="app"></div>
 
 <div id="printHost"><div id="printArea"></div></div>
+
+<div class="save-toast" id="saveToast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -635,11 +646,11 @@ async function cloudFetchRecord(team, id){
   try{ state = JSON.parse(d.data || '{}'); }catch(e){}
   return { label: d.label || '', state };
 }
-async function cloudSaveRecord(team, id, label, stateObj){
+async function cloudSaveRecord(team, id, label, dataJson){
   await db.collection('teams').doc(team).collection('records').doc(id).set({
     label: label,
     updatedAt: Date.now(),
-    data: JSON.stringify(stateObj)
+    data: dataJson
   });
 }
 async function cloudDeleteRecord(team, id){
@@ -682,7 +693,8 @@ async function createNewRecord(label){
   answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
   const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
   if(cloudReady){
-    try{ await cloudSaveRecord(currentTeam, id, finalLabel, stateObj); }catch(e){ console.error(e); }
+    try{ await cloudSaveRecord(currentTeam, id, finalLabel, JSON.stringify(stateObj)); }
+    catch(e){ console.error(e); showSaveStatus('err', '新しい記録を作成できませんでした。通信状況をご確認ください。'); }
   } else {
     const list = getRecordsIndex();
     list.unshift({ id, label: finalLabel, updatedAt: Date.now() });
@@ -735,19 +747,126 @@ async function deleteRecord(id){
   }
   if(currentRecordId===id) currentRecordId = null;
 }
-async function saveDraft(){
-  if(!currentRecordId) return;
-  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
-  if(cloudReady){
-    try{ await cloudSaveRecord(currentTeam, currentRecordId, currentRecordLabel, stateObj); }catch(e){ console.error(e); }
-  } else {
-    try{
-      localStorage.setItem(RECORD_KEY_PREFIX + currentRecordId, JSON.stringify(stateObj));
-      const list = getRecordsIndex();
-      const rec = list.find(r=>r.id===currentRecordId);
-      if(rec){ rec.updatedAt = Date.now(); saveRecordsIndex(list); }
-    }catch(e){ /* 容量オーバー等は無視 */ }
+/* ---- 保存状態の表示 ----
+   以前は保存の失敗を console にだけ出していたため、画面上は成功したように見えて
+   入力が消える事故が起きていました。必ずユーザーに見せます。 */
+let saveToastTimer = null;
+function showSaveStatus(kind, text){
+  const el = document.getElementById('saveToast');
+  if(!el) return;
+  clearTimeout(saveToastTimer);
+  el.className = 'save-toast show ' + kind;
+  el.textContent = text;
+  if(kind !== 'err'){
+    saveToastTimer = setTimeout(()=>{ el.className = 'save-toast'; }, kind === 'saving' ? 8000 : 1600);
   }
+}
+
+/* Firestore の 1 ドキュメント上限は 1MiB。フィールド名などの分を引いた安全圏で止める。 */
+const FIRESTORE_DOC_LIMIT = 1048576;
+const SAVE_SIZE_LIMIT = 900000;
+function byteLength(str){
+  try{ return new TextEncoder().encode(str).length; }
+  catch(e){ return str.length * 2; }
+}
+
+/* 保存が重ならないよう直列化する（連続入力時の取りこぼし防止） */
+let saveChain = Promise.resolve();
+function saveDraft(opts){
+  const quiet = !!(opts && opts.quiet);
+  saveChain = saveChain.then(()=>doSaveDraft(quiet)).catch(()=>{});
+  return saveChain;
+}
+
+/* quiet=true のときは成功表示を出さない（入力中の自動保存で通知が出続けないように）。
+   失敗は quiet でも必ず表示する。 */
+async function doSaveDraft(quiet){
+  if(!currentRecordId) return true;
+  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
+  const json = JSON.stringify(stateObj);
+
+  if(cloudReady){
+    if(byteLength(json) > SAVE_SIZE_LIMIT){
+      showSaveStatus('err', '保存できません：データが大きすぎます。写真を減らすか、動画はURLでの登録にしてください。');
+      return false;
+    }
+    try{
+      await cloudSaveRecord(currentTeam, currentRecordId, currentRecordLabel, json);
+      if(!quiet) showSaveStatus('ok', '保存しました');
+      return true;
+    }catch(e){
+      console.error(e);
+      const detail = (e && (e.code || e.message)) ? `（${e.code || e.message}）` : '';
+      showSaveStatus('err', `保存できませんでした${detail}。通信状況を確認し、この画面を閉じないでください。`);
+      return false;
+    }
+  }
+
+  try{
+    localStorage.setItem(RECORD_KEY_PREFIX + currentRecordId, json);
+    const list = getRecordsIndex();
+    const rec = list.find(r=>r.id===currentRecordId);
+    if(rec){ rec.updatedAt = Date.now(); saveRecordsIndex(list); }
+    if(!quiet) showSaveStatus('ok', 'この端末に保存しました');
+    return true;
+  }catch(e){
+    console.error(e);
+    showSaveStatus('err', 'この端末に保存できませんでした：保存容量がいっぱいの可能性があります。写真を減らしてください。');
+    return false;
+  }
+}
+
+/* ---- 写真は縮小・圧縮してから保存する ----
+   端末のカメラ写真をそのまま Base64 で持つと1枚で数MBになり、
+   Firestore の 1MiB 制限を超えて記録全体が保存できなくなるため。 */
+/* 写真はBase64のまま記録に埋め込まれるので、1枚あたりの上限を決めて
+   収まるまで段階的に画質・サイズを落とす。4枚入れても SAVE_SIZE_LIMIT に収まる配分。 */
+const PHOTO_TARGET_CHARS = 190000;
+const PHOTO_ATTEMPTS = [
+  {edge:1000, quality:0.60},
+  {edge:1000, quality:0.45},
+  {edge: 800, quality:0.45},
+  {edge: 800, quality:0.35},
+  {edge: 640, quality:0.35}
+];
+
+function drawScaledCanvas(img, maxEdge){
+  const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';   /* 透過PNG が黒くならないように */
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas;
+}
+
+function compressImageFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('画像を読み込めませんでした'));
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('画像を読み込めませんでした'));
+      img.onload = ()=>{
+        let result = null, canvas = null, lastEdge = null;
+        try{
+          for(const a of PHOTO_ATTEMPTS){
+            /* 同じサイズなら描き直さず、画質だけ落として再エンコードする */
+            if(a.edge !== lastEdge){ canvas = drawScaledCanvas(img, a.edge); lastEdge = a.edge; }
+            result = canvas.toDataURL('image/jpeg', a.quality);
+            if(result.length <= PHOTO_TARGET_CHARS) break;
+          }
+        }catch(err){ reject(err); return; }
+        resolve(result);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 async function clearDraft(){
   if(currentRecordId) await deleteRecord(currentRecordId);
@@ -1185,7 +1304,8 @@ function renderStep(){
   document.getElementById('toRecordList').onclick = ()=>{ commitStep(s); saveDraft(); idx = -1; renderStart(); };
   document.getElementById('toSummary').onclick = ()=>{ commitStep(s); idx = STEPS.length; saveDraft(); renderSummary(); };
   document.getElementById('backBtn').onclick = ()=>{ commitStep(s); idx = Math.max(0, idx-1); saveDraft(); renderStep(); };
-  document.getElementById('skipBtn').onclick = ()=>{ idx++; saveDraft(); renderStep(); };
+  /* スキップでも入力済みの内容は取りこぼさない（回答欄を空にする操作ではないため） */
+  document.getElementById('skipBtn').onclick = ()=>{ commitStep(s); idx++; saveDraft(); renderStep(); };
   document.getElementById('nextBtn').onclick = ()=>{ commitStep(s); idx++; saveDraft(); renderStep(); };
 
   const autoFillBtn = document.getElementById('autoFillBtn');
@@ -1247,12 +1367,19 @@ function renderStep(){
     PHOTO_SLOTS.forEach(key=>{
       const inp = app.querySelector(`input[type=file][data-key="${key}"]`);
       if(inp){
-        inp.addEventListener('change', (e)=>{
+        inp.addEventListener('change', async (e)=>{
           const file = e.target.files[0];
           if(!file) return;
-          const reader = new FileReader();
-          reader.onload = ()=>{ photoData[key] = reader.result; saveDraft(); renderStep(); };
-          reader.readAsDataURL(file);
+          showSaveStatus('saving', '写真を処理しています…');
+          try{
+            photoData[key] = await compressImageFile(file);
+          }catch(err){
+            console.error(err);
+            showSaveStatus('err', 'この写真は読み込めませんでした。別の写真をお試しください。');
+            return;
+          }
+          await saveDraft();
+          renderStep();
         });
       }
     });
@@ -1277,6 +1404,7 @@ function renderStep(){
     });
   }
 
+  attachAutoSave(s);
   setupMic(s);
 }
 
@@ -1322,6 +1450,39 @@ function commitStep(s){
     });
   }
 }
+
+/* ---- 入力中の自動保存 ----
+   以前は「次へ／戻る」を押したときしか保存されず、入力途中でタブを閉じたり
+   画面を切り替えたりするとその1問分が消えていました。 */
+const AUTO_SAVE_DELAY = 1200;
+let autoSaveTimer = null;
+let pendingStep = null;
+
+function attachAutoSave(s){
+  pendingStep = s;
+  clearTimeout(autoSaveTimer);
+  const schedule = ()=>{
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(()=>{ commitStep(s); saveDraft({quiet:true}); }, AUTO_SAVE_DELAY);
+  };
+  app.querySelectorAll('textarea, input[type=number], input[type=date], input[type=range]')
+     .forEach(el=> el.addEventListener('input', schedule));
+  app.querySelectorAll('.check-item input[type=checkbox]')
+     .forEach(cb=> cb.addEventListener('change', schedule));
+}
+
+/* 保留中の入力をすぐ書き出す。設問画面にいるときだけ動かす。 */
+function flushPendingSave(){
+  clearTimeout(autoSaveTimer);
+  if(!pendingStep || !currentRecordId) return;
+  if(!document.getElementById('skipBtn')) return; /* 設問画面以外では何もしない */
+  commitStep(pendingStep);
+  saveDraft();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') flushPendingSave();
+});
+window.addEventListener('pagehide', flushPendingSave);
 
 // 測定値と正常可動域の差を判定する（正常より小さければ「マイナス◯◯°」）
 function getRomDiff(value, normal){
