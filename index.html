@@ -564,6 +564,12 @@ const STEPS = [
     {label:'16〜20回目', sessions:[16,17,18,19,20]},
     {label:'21〜25回目', sessions:[21,22,23,24,25]},
     {label:'26〜30回目', sessions:[26,27,28,29,30]},
+    {label:'31〜35回目', sessions:[31,32,33,34,35]},
+    {label:'36〜40回目', sessions:[36,37,38,39,40]},
+    {label:'41〜45回目', sessions:[41,42,43,44,45]},
+    {label:'46〜50回目', sessions:[46,47,48,49,50]},
+    {label:'51〜55回目', sessions:[51,52,53,54,55]},
+    {label:'56〜60回目', sessions:[56,57,58,59,60]},
   ]},
 ];
 
@@ -582,6 +588,10 @@ let orthoTestData = {}; // {"group::test": 'positive'|'negative'}
 let romData = {}; // {"group::item[::R/L]": '45'}
 let mmtData = {}; // {"group::muscle::R/L": '4'}
 let progressData = {}; // {sessionNumber: {date:'', content:''}}
+/* 保存済みの写真。1枚数百KBあるため、自動保存のたびに全部送り直さず
+   前回と変わったスロットだけを書き込むための比較用。 */
+let syncedPhotos = { recordId: null, map: {} };
+function resetSyncedPhotos(recordId, saved){ syncedPhotos = { recordId, map: Object.assign({}, saved || {}) }; }
 let idx = -1; // -1 = record list screen, STEPS.length = summary
 let recognizing = false;
 
@@ -633,10 +643,38 @@ try{
   }
 }catch(e){ console.error('Firebase init failed', e); cloudReady = false; }
 
+/* ---- 写真は1枚ずつ別ドキュメントに保存する ----
+   以前は写真4枚を記録本体のJSONに埋め込んでいました。Firestoreの1ドキュメント上限は
+   1MiBなので、4枚でそれを分け合うことになり、1枚あたり約140KB（長辺1000px・JPEG品質0.6）
+   まで潰さないと保存できませんでした。PowerPointに貼ったときに画質が荒く見えていたのは
+   このためです。スロットごとに別ドキュメントへ分けると1枚で1MiBを使えるので、
+   長辺2000px級の高画質のまま保存できます。
+
+   保存先は写真専用のサブコレクションではなく records コレクション内の別IDにしています。
+   公開済みのセキュリティルール（match /teams/{team}/records/{recordId}）がそのまま効き、
+   Firebaseコンソールでルールを貼り替えてもらう必要がないためです。 */
+const PHOTO_DOC_SEP = '__photo__';
+function photoDocId(recordId, slotKey){ return recordId + PHOTO_DOC_SEP + PHOTO_SLOTS.indexOf(slotKey); }
+function isPhotoDocId(id){ return id.indexOf(PHOTO_DOC_SEP) !== -1; }
+
 /* ---- クラウド保存（チーム共有） ---- */
 async function cloudListRecords(team){
   const snap = await db.collection('teams').doc(team).collection('records').orderBy('updatedAt','desc').get();
-  return snap.docs.map(d=>({ id: d.id, label: d.data().label || '', updatedAt: d.data().updatedAt || 0 }));
+  /* 写真ドキュメントは updatedAt を持たないので orderBy の時点で外れるが、
+     一覧に紛れ込むと記録が増えたように見えるのでIDでも弾いておく。 */
+  return snap.docs
+    .filter(d=>!isPhotoDocId(d.id))
+    .map(d=>({ id: d.id, label: d.data().label || '', updatedAt: d.data().updatedAt || 0 }));
+}
+async function cloudFetchPhotos(team, recordId){
+  const col = db.collection('teams').doc(team).collection('records');
+  const snaps = await Promise.all(PHOTO_SLOTS.map(k=>col.doc(photoDocId(recordId, k)).get()));
+  const out = {};
+  snaps.forEach((snap, i)=>{
+    const photo = snap.exists ? snap.data().photo : null;
+    if(photo) out[PHOTO_SLOTS[i]] = photo;
+  });
+  return out;
 }
 async function cloudFetchRecord(team, id){
   const doc = await db.collection('teams').doc(team).collection('records').doc(id).get();
@@ -644,7 +682,9 @@ async function cloudFetchRecord(team, id){
   const d = doc.data();
   let state = {};
   try{ state = JSON.parse(d.data || '{}'); }catch(e){}
-  return { label: d.label || '', state };
+  /* 分割前に作られた記録は写真が本体JSONに入っている。別ドキュメント側を優先して重ねる。 */
+  const photos = await cloudFetchPhotos(team, id);
+  return { label: d.label || '', state, photos };
 }
 async function cloudSaveRecord(team, id, label, dataJson){
   await db.collection('teams').doc(team).collection('records').doc(id).set({
@@ -653,12 +693,41 @@ async function cloudSaveRecord(team, id, label, dataJson){
     data: dataJson
   });
 }
+async function cloudSavePhotos(team, recordId){
+  const col = db.collection('teams').doc(team).collection('records');
+  const jobs = [];
+  PHOTO_SLOTS.forEach(k=>{
+    const next = photoData[k] || null;
+    const prev = syncedPhotos.map[k] || null;
+    if(next === prev) return;   /* 変わっていないスロットは送り直さない */
+    const ref = col.doc(photoDocId(recordId, k));
+    const job = next
+      ? ref.set({ kind:'photo', photo: next }).then(()=>{ syncedPhotos.map[k] = next; })
+      : ref.delete().then(()=>{ delete syncedPhotos.map[k]; });
+    jobs.push(job);
+  });
+  if(jobs.length) await Promise.all(jobs);
+}
 async function cloudDeleteRecord(team, id){
-  await db.collection('teams').doc(team).collection('records').doc(id).delete();
+  const col = db.collection('teams').doc(team).collection('records');
+  await Promise.all(PHOTO_SLOTS.map(k=>col.doc(photoDocId(id, k)).delete().catch(()=>{})));
+  await col.doc(id).delete();
 }
 
 /* ---- この端末のみの保存（クラウド未設定時のフォールバック、チームごとに別リスト） ---- */
 function localIndexKey(team){ return RECORDS_INDEX_KEY + '_' + team; }
+/* 端末内保存でも写真は記録本体と別キーにする（クラウド側の分割と揃えるため） */
+function localPhotoKey(recordId, slotKey){ return RECORD_KEY_PREFIX + recordId + PHOTO_DOC_SEP + PHOTO_SLOTS.indexOf(slotKey); }
+function localReadPhotos(recordId){
+  const out = {};
+  PHOTO_SLOTS.forEach(k=>{
+    try{
+      const v = localStorage.getItem(localPhotoKey(recordId, k));
+      if(v) out[k] = v;
+    }catch(e){}
+  });
+  return out;
+}
 function getRecordsIndex(){
   try{
     const raw = localStorage.getItem(localIndexKey(currentTeam));
@@ -691,7 +760,8 @@ async function createNewRecord(label){
   currentRecordId = id;
   currentRecordLabel = finalLabel;
   answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
-  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
+  resetSyncedPhotos(id, null);
+  const stateObj = buildStateForSave();
   if(cloudReady){
     try{ await cloudSaveRecord(currentTeam, id, finalLabel, JSON.stringify(stateObj)); }
     catch(e){ console.error(e); showSaveStatus('err', '新しい記録を作成できませんでした。通信状況をご確認ください。'); }
@@ -709,7 +779,9 @@ async function loadRecord(id){
       const rec = await cloudFetchRecord(currentTeam, id);
       if(!rec) return false;
       answers = rec.state.answers || {};
-      photoData = rec.state.photoData || {};
+      /* 分割前の記録は本体JSON側に写真が残っている。別ドキュメント側があればそちらを優先。 */
+      photoData = Object.assign({}, rec.state.photoData || {}, rec.photos || {});
+      resetSyncedPhotos(id, rec.photos);
       videoData = rec.state.videoData || {};
       orthoTestData = rec.state.orthoTestData || {};
       romData = rec.state.romData || {};
@@ -725,7 +797,8 @@ async function loadRecord(id){
     if(!raw) return false;
     const d = JSON.parse(raw);
     answers = d.answers || {};
-    photoData = d.photoData || {};
+    photoData = Object.assign({}, d.photoData || {}, localReadPhotos(id));
+    resetSyncedPhotos(id, null);
     videoData = d.videoData || {};
     orthoTestData = d.orthoTestData || {};
     romData = d.romData || {};
@@ -743,6 +816,7 @@ async function deleteRecord(id){
     try{ await cloudDeleteRecord(currentTeam, id); }catch(e){ console.error(e); }
   } else {
     localStorage.removeItem(RECORD_KEY_PREFIX + id);
+    PHOTO_SLOTS.forEach(k=>localStorage.removeItem(localPhotoKey(id, k)));
     saveRecordsIndex(getRecordsIndex().filter(r=>r.id!==id));
   }
   if(currentRecordId===id) currentRecordId = null;
@@ -770,6 +844,12 @@ function byteLength(str){
   catch(e){ return str.length * 2; }
 }
 
+/* 記録本体に入れる分。写真はスロットごとの別ドキュメント／別キーに保存するので含めない。
+   分割前に作られた記録も、次に保存された時点でこの形に移行します。 */
+function buildStateForSave(){
+  return {answers, videoData, orthoTestData, romData, mmtData, progressData};
+}
+
 /* 保存が重ならないよう直列化する（連続入力時の取りこぼし防止） */
 let saveChain = Promise.resolve();
 function saveDraft(opts){
@@ -782,15 +862,17 @@ function saveDraft(opts){
    失敗は quiet でも必ず表示する。 */
 async function doSaveDraft(quiet){
   if(!currentRecordId) return true;
-  const stateObj = {answers, photoData, videoData, orthoTestData, romData, mmtData, progressData};
-  const json = JSON.stringify(stateObj);
+  if(syncedPhotos.recordId !== currentRecordId) resetSyncedPhotos(currentRecordId, null);
+  const json = JSON.stringify(buildStateForSave());
 
   if(cloudReady){
     if(byteLength(json) > SAVE_SIZE_LIMIT){
-      showSaveStatus('err', '保存できません：データが大きすぎます。写真を減らすか、動画はURLでの登録にしてください。');
+      showSaveStatus('err', '保存できません：データが大きすぎます。動画はURLでの登録にし、長い文章を短くしてください。');
       return false;
     }
     try{
+      /* 写真はスロットごとに別ドキュメント。変わった写真だけ先に書き込む。 */
+      await cloudSavePhotos(currentTeam, currentRecordId);
       await cloudSaveRecord(currentTeam, currentRecordId, currentRecordLabel, json);
       if(!quiet) showSaveStatus('ok', '保存しました');
       return true;
@@ -804,6 +886,11 @@ async function doSaveDraft(quiet){
 
   try{
     localStorage.setItem(RECORD_KEY_PREFIX + currentRecordId, json);
+    PHOTO_SLOTS.forEach(k=>{
+      const key = localPhotoKey(currentRecordId, k);
+      if(photoData[k]) localStorage.setItem(key, photoData[k]);
+      else localStorage.removeItem(key);
+    });
     const list = getRecordsIndex();
     const rec = list.find(r=>r.id===currentRecordId);
     if(rec){ rec.updatedAt = Date.now(); saveRecordsIndex(list); }
@@ -817,16 +904,29 @@ async function doSaveDraft(quiet){
 }
 
 /* ---- 写真は縮小・圧縮してから保存する ----
-   端末のカメラ写真をそのまま Base64 で持つと1枚で数MBになり、
-   Firestore の 1MiB 制限を超えて記録全体が保存できなくなるため。 */
-/* 写真はBase64のまま記録に埋め込まれるので、1枚あたりの上限を決めて
-   収まるまで段階的に画質・サイズを落とす。4枚入れても SAVE_SIZE_LIMIT に収まる配分。 */
-const PHOTO_TARGET_CHARS = 190000;
+   端末のカメラ写真をそのまま Base64 で持つと1枚で数MB〜十数MBになるため、
+   保存先に収まる上限を決めて、収まるまで段階的にサイズ・画質を落とします。
+
+   写真をスロットごとの別ドキュメントに分けたので、1枚で 1MiB 近くまで使えます。
+   以前の「長辺1000px・JPEG品質0.6」ではPowerPointに貼ったときに粗く見えたため、
+   長辺2000px級・高品質から試すようにしました。
+   上限を1MiBぎりぎりまで引き上げないのは、スマホの回線で4枚アップロードすると
+   時間がかかり、保存の失敗が増えるためです。画質は長辺の画素数で決まるので、
+   この範囲でも従来の「長辺1000px」から見え方は大きく改善します。 */
+const PHOTO_CLOUD_TARGET_CHARS = 600000;
+/* 端末内保存（クラウド未設定時）は localStorage が全体で5MB程度しかなく、
+   文字列はUTF-16で数えられるため、従来どおり控えめに抑えます。 */
+const PHOTO_LOCAL_TARGET_CHARS = 190000;
+function photoTargetChars(){ return cloudReady ? PHOTO_CLOUD_TARGET_CHARS : PHOTO_LOCAL_TARGET_CHARS; }
+
 const PHOTO_ATTEMPTS = [
+  {edge:2000, quality:0.90},
+  {edge:2000, quality:0.82},
+  {edge:1600, quality:0.82},
+  {edge:1600, quality:0.72},
+  {edge:1280, quality:0.72},
   {edge:1000, quality:0.60},
-  {edge:1000, quality:0.45},
   {edge: 800, quality:0.45},
-  {edge: 800, quality:0.35},
   {edge: 640, quality:0.35}
 ];
 
@@ -852,15 +952,20 @@ function compressImageFile(file){
       const img = new Image();
       img.onerror = ()=> reject(new Error('画像を読み込めませんでした'));
       img.onload = ()=>{
+        const target = photoTargetChars();
         let result = null, canvas = null, lastEdge = null;
         try{
           for(const a of PHOTO_ATTEMPTS){
             /* 同じサイズなら描き直さず、画質だけ落として再エンコードする */
             if(a.edge !== lastEdge){ canvas = drawScaledCanvas(img, a.edge); lastEdge = a.edge; }
             result = canvas.toDataURL('image/jpeg', a.quality);
-            if(result.length <= PHOTO_TARGET_CHARS) break;
+            if(result.length <= target) break;
           }
         }catch(err){ reject(err); return; }
+        if(!result || result.length > target){
+          reject(new Error('この写真は大きすぎて保存できませんでした'));
+          return;
+        }
         resolve(result);
       };
       img.src = reader.result;
@@ -879,6 +984,7 @@ async function clearDraft(){
   romData = {};
   mmtData = {};
   progressData = {};
+  resetSyncedPhotos(null, null);
 }
 
 function todayStr(){
@@ -2094,6 +2200,45 @@ function addPptxLogo(slide){
   slide.addImage({ data: LOGO_DATA_URI, x: 8.5, y: 5.25, w: 1.2, h: 1.2*LOGO_ASPECT });
 }
 
+/* ---- 写真スライドの配置 ----
+   以前は 4.3×2.1 インチのタイル2×2に contain で流し込んでいました。
+   姿勢写真は縦長なので、この形だと高さ2.1インチで頭打ちになり、
+   左右に余白を残したまま小さく貼られて粗く見えていました。
+   実際の縦横比を見て、縦長が主なら横1列・4枚並べて高さいっぱいに使います。 */
+function loadImageSize(dataUrl){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=> resolve({ w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+    img.onerror = ()=> resolve({ w: 4, h: 3 });
+    img.src = dataUrl;
+  });
+}
+
+/* 枠の中に縦横比を保ったまま最大サイズで収まる矩形（中央寄せ） */
+function fitInCell(cell, ratio){
+  let w = cell.w, h = w / ratio;
+  if(h > cell.h){ h = cell.h; w = h * ratio; }
+  return { x: cell.x + (cell.w - w)/2, y: cell.y + (cell.h - h)/2, w, h };
+}
+
+function photoCells(count, portrait){
+  if(portrait){
+    /* 横1列。ラベルは写真の下（ロゴと重ならない位置）に置く */
+    const cols = Math.max(count, 1);
+    const gap = 0.16;
+    const totalW = 9.3;
+    const w = (totalW - gap * (cols - 1)) / cols;
+    return Array.from({length: cols}, (_, i)=>({ x: 0.35 + i * (w + gap), y: 0.95, w, h: 3.85 }));
+  }
+  /* 横長が混じる場合は従来どおり2×2。ラベルと右下ロゴが重ならない高さに収める。 */
+  return [
+    { x:0.4, y:0.85, w:4.5, h:1.9 },
+    { x:5.1, y:0.85, w:4.5, h:1.9 },
+    { x:0.4, y:3.0,  w:4.5, h:1.9 },
+    { x:5.1, y:3.0,  w:4.5, h:1.9 }
+  ].slice(0, Math.max(count, 1));
+}
+
 function addPptxBulletSlide(pptx, title, lines){
   const chunkSize = 20;
   const chunks = [];
@@ -2112,12 +2257,19 @@ function addPptxBulletSlide(pptx, title, lines){
   });
 }
 
-function exportPPTX(){
+async function exportPPTX(){
   if(!window.PptxGenJS){
     alert('PowerPoint生成ライブラリの読み込みに失敗しました。ネット接続をご確認のうえ、公開後のURLでお試しください。');
     return;
   }
   setExportMsg('PowerPointを作成中…');
+
+  /* 貼り付け前に各写真の実寸を読む（縦横比どおりに置いて歪み・余白を出さないため） */
+  const photoKeys = PHOTO_SLOTS.filter(k=>photoData[k]);
+  const photoSizes = {};
+  const sizes = await Promise.all(photoKeys.map(k=>loadImageSize(photoData[k])));
+  photoKeys.forEach((k, i)=>{ photoSizes[k] = sizes[i]; });
+
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
 
@@ -2141,14 +2293,22 @@ function exportPPTX(){
     if(s.type==='photo'){
       flush();
       lastSection = null;
-      const found = PHOTO_SLOTS.filter(k=>photoData[k]);
+      const found = photoKeys.slice(0, 4);
       const slide = newPptxSlide(pptx);
       slide.addText(s.section, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
       if(found.length){
-        const positions = [{x:0.5,y:0.9},{x:5.1,y:0.9},{x:0.5,y:3.15},{x:5.1,y:3.15}];
-        found.slice(0,4).forEach((k,idx)=>{
-          slide.addImage({ data: photoData[k], x:positions[idx].x, y:positions[idx].y, w:4.3, h:2.1, sizing:{ type:'contain', w:4.3, h:2.1 } });
-          slide.addText(k, { x:positions[idx].x, y:positions[idx].y+2.15, w:4.3, h:0.3, fontSize:10, color:'6B7A86' });
+        const portrait = found.every(k=>{
+          const sz = photoSizes[k];
+          return sz && sz.h >= sz.w;
+        });
+        const cells = photoCells(found.length, portrait);
+        found.forEach((k, i)=>{
+          const cell = cells[i] || cells[cells.length-1];
+          const sz = photoSizes[k] || { w:4, h:3 };
+          const rect = fitInCell(cell, sz.w / sz.h);
+          slide.addImage({ data: photoData[k], x:rect.x, y:rect.y, w:rect.w, h:rect.h });
+          /* ラベルは枠の底ではなく写真の直下に置く（縦横比で余った分だけ上に詰める） */
+          slide.addText(k, { x:cell.x, y:rect.y + rect.h + 0.04, w:cell.w, h:0.28, fontSize:10, color:'6B7A86', align:'center' });
         });
       } else {
         slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
@@ -2210,6 +2370,7 @@ function boot(){
       currentRecordLabel = '';
       idx = -1;
       answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
+      resetSyncedPhotos(null, null);
       renderPassGate();
     }
   });
