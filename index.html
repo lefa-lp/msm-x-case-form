@@ -2277,10 +2277,15 @@ const PPTX_BODY_FONT = 12;
 const PPTX_BODY_LINE_HEIGHT = 1.35; // 行間（pptxgenjsの既定に近い係数）
 const PPTX_BODY_CHARS_PER_LINE = 40; // 全角文字換算・箇条書きインデント込みの安全値
 
+/* 1行の中に実際の改行(\n)が含まれる場合、PowerPoint側では改行ごとに
+   別の箇条書き行として描画される。文字数だけで折り返し行数を見積もると
+   この改行を無視してしまい、実際よりずっと少ない行数と誤判定するため、
+   改行で区切ってから各区間の折り返し行数を積み上げる。 */
 function estimateVisualLines(text, fontSize){
   const scale = PPTX_BODY_FONT / fontSize;
   const charsPerLine = Math.max(10, Math.floor(PPTX_BODY_CHARS_PER_LINE * scale));
-  return Math.max(1, Math.ceil(String(text).length / charsPerLine));
+  const segments = String(text).split('\n');
+  return segments.reduce((sum, seg)=> sum + Math.max(1, Math.ceil(seg.length / charsPerLine)), 0);
 }
 
 function maxLinesForFont(fontSize){
@@ -2338,6 +2343,75 @@ function addPptxBulletSlide(pptx, title, lines){
     } else {
       slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
     }
+    addPptxLogo(slide);
+  });
+}
+
+/* ---- 「14. 客観的事実（まとめ）」専用：2カラムレイアウト ----
+   このセクションは「検査結果から自動入力」で【ROM測定値】【MMT測定値】などの
+   ブロックが改行区切りで大量に生成されるため、1カラムだと縦にはみ出しやすい。
+   左カラムが埋まったら自動的に右カラムへ、右カラムも埋まったら次のスライドへ
+   折り返す（ROM＝左／MMT＝右、のような固定割り当てではなく、内容量に応じて
+   自動でバランスを取る）。 */
+const PPTX_SUMMARY_COLS = [
+  { x:0.5,  y:0.9, w:4.35, h:4.3 },
+  { x:5.15, y:0.9, w:4.35, h:4.3 }
+];
+const PPTX_SUMMARY_FONT = 11;
+
+function addObjectiveSummarySlides(pptx, s){
+  const val = getDisplayValue(s);
+  const rawLines = val ? String(val).split('\n').map(l=>l.trim()).filter(l=>l!=='') : [];
+
+  if(rawLines.length===0){
+    const slide = newPptxSlide(pptx);
+    slide.addText(s.section, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
+    slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
+    addPptxLogo(slide);
+    return;
+  }
+
+  const colWidthRatio = PPTX_SUMMARY_COLS[0].w / PPTX_BODY_BOX.w;
+  const fontScale = PPTX_BODY_FONT / PPTX_SUMMARY_FONT;
+  const colCharsPerLine = Math.max(8, Math.floor(PPTX_BODY_CHARS_PER_LINE * colWidthRatio * fontScale));
+  const maxLinesPerCol = Math.max(3, Math.floor((PPTX_SUMMARY_COLS[0].h * 72) / (PPTX_SUMMARY_FONT * PPTX_BODY_LINE_HEIGHT)));
+
+  /* 行を左カラム→右カラムの順に詰め、右カラムも埋まったら次のスライドへ */
+  const pages = [];
+  let page = [[], []];
+  let col = 0;
+  let used = 0;
+  rawLines.forEach(line=>{
+    const visual = Math.max(1, Math.ceil(line.length / colCharsPerLine));
+    if(used + visual > maxLinesPerCol && page[col].length){
+      col++;
+      used = 0;
+      if(col > 1){
+        pages.push(page);
+        page = [[], []];
+        col = 0;
+      }
+    }
+    page[col].push(line);
+    used += visual;
+  });
+  pages.push(page);
+
+  pages.forEach((pg, pi)=>{
+    const slide = newPptxSlide(pptx);
+    const titleText = pages.length>1 ? `${s.section}（${pi+1}/${pages.length}）` : s.section;
+    slide.addText(titleText, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
+    pg.forEach((colLines, ci)=>{
+      if(!colLines.length) return;
+      const box = PPTX_SUMMARY_COLS[ci];
+      slide.addText(colLines.map(l=>{
+        const isHeader = /^【.*】$/.test(l); // 【ROM測定値】等の見出し行は太字・色付けで区別
+        return { text: l, options:{ bullet: !isHeader, breakLine:true, bold: isHeader, color: isHeader ? '2E6E65' : '22303A' } };
+      }), {
+        x: box.x, y: box.y, w: box.w, h: box.h,
+        fontSize: PPTX_SUMMARY_FONT, valign:'top', wrap:true, lineSpacingMultiple: PPTX_BODY_LINE_HEIGHT
+      });
+    });
     addPptxLogo(slide);
   });
 }
@@ -2403,6 +2477,13 @@ async function exportPPTX(){
         slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
       }
       addPptxLogo(slide);
+      return;
+    }
+
+    if(s.id==='objectiveSummary'){
+      flush();
+      lastSection = null;
+      addObjectiveSummarySlides(pptx, s);
       return;
     }
 
