@@ -1610,10 +1610,21 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-/* 回数券の残り回数（回数券の回数 − 施術回数）。未入力・数値でない場合はnull */
+/* 回数券の残り回数（回数券の回数 − 施術回数）。
+   「10」だけでなく「10回」「１０」のような音声入力・全角混じりの表記からも
+   数値を拾えるよう、文字列中の最初の数字列を抽出して判定する。
+   数値が見つからない場合はnull */
+function parseLeadingNumber(str){
+  if(str===undefined || str===null) return null;
+  const half = String(str).replace(/[０-９]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0));
+  const m = half.match(/\d+(\.\d+)?/);
+  if(!m) return null;
+  const v = Number(m[0]);
+  return isFinite(v) ? v : null;
+}
 function getRemainingCount(sessionNumber){
-  const total = Number(answers['ticketCount']);
-  if(!isFinite(total) || answers['ticketCount']===undefined || String(answers['ticketCount']).trim()==='') return null;
+  const total = parseLeadingNumber(answers['ticketCount']);
+  if(total===null) return null;
   return total - sessionNumber;
 }
 
@@ -2039,20 +2050,23 @@ function buildPrintAreaHtml(){
     }
     if(s.type==='orthotest'){
       const orthoLines = getOrthoResultLines(s);
+      if(!orthoLines.length) return; // 実施した検査が1つもない場合はPDFに出さない
       html += `<div class="pq">${s.section}｜${s.title}</div>`;
-      html += `<div class="pa">${orthoLines.length ? orthoLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      html += `<div class="pa">${orthoLines.map(escapeHtml).join('\n')}</div>`;
       return;
     }
     if(s.type==='rom'){
       const romLines = getRomResultLines(s);
+      if(!romLines.length) return; // 実施した測定が1つもない場合はPDFに出さない
       html += `<div class="pq">${s.section}｜${s.title}</div>`;
-      html += `<div class="pa">${romLines.length ? romLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      html += `<div class="pa">${romLines.map(escapeHtml).join('\n')}</div>`;
       return;
     }
     if(s.type==='mmt'){
       const mmtLines = getMmtResultLines(s);
+      if(!mmtLines.length) return; // 実施した測定が1つもない場合はPDFに出さない
       html += `<div class="pq">${s.section}｜${s.title}</div>`;
-      html += `<div class="pa">${mmtLines.length ? mmtLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      html += `<div class="pa">${mmtLines.map(escapeHtml).join('\n')}</div>`;
       return;
     }
     if(s.type==='progresslog'){
@@ -2252,17 +2266,75 @@ function photoCells(count, portrait){
   ].slice(0, Math.max(count, 1));
 }
 
-function addPptxBulletSlide(pptx, title, lines){
-  const chunkSize = 20;
+/* テキストボックスに収まる分量だけを1枚に収める。
+   単純な行数（20行区切り）だと、経過記録のような長文が混ざったときに
+   実際の折り返し後の行数がボックスの高さを超え、スライド外にはみ出してしまう。
+   pptxgenjsの fit:'shrink' はファイル生成時には効かない（PowerPointで人が
+   編集した時だけ動作する仕様）ため、生成時点で文字数から折り返し行数を見積もり、
+   収まる分だけで区切る。 */
+const PPTX_BODY_BOX = { x:0.5, y:0.9, w:9, h:4.3 };
+const PPTX_BODY_FONT = 12;
+const PPTX_BODY_LINE_HEIGHT = 1.35; // 行間（pptxgenjsの既定に近い係数）
+const PPTX_BODY_CHARS_PER_LINE = 40; // 全角文字換算・箇条書きインデント込みの安全値
+
+function estimateVisualLines(text, fontSize){
+  const scale = PPTX_BODY_FONT / fontSize;
+  const charsPerLine = Math.max(10, Math.floor(PPTX_BODY_CHARS_PER_LINE * scale));
+  return Math.max(1, Math.ceil(String(text).length / charsPerLine));
+}
+
+function maxLinesForFont(fontSize){
+  const boxPt = PPTX_BODY_BOX.h * 72;
+  return Math.max(3, Math.floor(boxPt / (fontSize * PPTX_BODY_LINE_HEIGHT)));
+}
+
+/* 文字数を見積もりながら、ボックスに収まる本文だけをひとかたまりにする */
+function splitBulletChunks(lines, fontSize){
+  const maxVisualLines = maxLinesForFont(fontSize);
   const chunks = [];
-  for(let i=0;i<lines.length;i+=chunkSize){ chunks.push(lines.slice(i,i+chunkSize)); }
-  if(chunks.length===0) chunks.push([]);
+  let current = [];
+  let used = 0;
+  lines.forEach(line=>{
+    const visual = estimateVisualLines(line, fontSize);
+    if(current.length && used + visual > maxVisualLines){
+      chunks.push(current);
+      current = [];
+      used = 0;
+    }
+    current.push(line);
+    used += visual;
+  });
+  if(current.length || chunks.length===0) chunks.push(current);
+  return chunks;
+}
+
+function addPptxBulletSlide(pptx, title, lines){
+  let fontSize = PPTX_BODY_FONT;
+  let chunks = splitBulletChunks(lines, fontSize);
+
+  /* それでも1枚に収まらない長文が単独で残った場合は、そのスライドだけ文字を縮める */
+  chunks = chunks.map(chunk=>{
+    if(chunk.length===1){
+      const visual = estimateVisualLines(chunk[0], fontSize);
+      const limit = maxLinesForFont(fontSize);
+      if(visual > limit){
+        const shrunk = Math.max(8, Math.floor(fontSize * limit / visual));
+        return { lines: chunk, fontSize: shrunk };
+      }
+    }
+    return { lines: chunk, fontSize };
+  });
+  if(chunks.length===0) chunks = [{ lines: [], fontSize }];
+
   chunks.forEach((chunk, ci)=>{
     const slide = newPptxSlide(pptx);
     const titleText = chunks.length>1 ? `${title}（${ci+1}/${chunks.length}）` : title;
     slide.addText(titleText, { x:0.4, y:0.25, w:9.2, h:0.5, fontSize:18, bold:true, color:'2E6E65' });
-    if(chunk.length){
-      slide.addText(chunk.map(l=>({ text: l, options:{ bullet:true, breakLine:true } })), { x:0.5, y:0.9, w:9, h:4.3, fontSize:12, color:'22303A', valign:'top' });
+    if(chunk.lines.length){
+      slide.addText(chunk.lines.map(l=>({ text: l, options:{ bullet:true, breakLine:true } })), {
+        x: PPTX_BODY_BOX.x, y: PPTX_BODY_BOX.y, w: PPTX_BODY_BOX.w, h: PPTX_BODY_BOX.h,
+        fontSize: chunk.fontSize, color:'22303A', valign:'top', wrap:true, lineSpacingMultiple: PPTX_BODY_LINE_HEIGHT
+      });
     } else {
       slide.addText('未入力', { x:0.5, y:0.9, w:9, h:0.5, fontSize:12, color:'999999', italic:true });
     }
@@ -2295,11 +2367,15 @@ async function exportPPTX(){
   let lastSection = null;
   let sectionLines = [];
   let sectionTitle = '';
+  let suppressIfEmpty = false; // 未実施の検査（オルソ/ROM/MMT）は空なら丸ごとスライドを作らない
 
   function flush(){
-    if(sectionTitle) addPptxBulletSlide(pptx, sectionTitle, sectionLines);
+    if(sectionTitle && !(suppressIfEmpty && sectionLines.length===0)){
+      addPptxBulletSlide(pptx, sectionTitle, sectionLines);
+    }
     sectionLines = [];
     sectionTitle = '';
+    suppressIfEmpty = false;
   }
 
   STEPS.forEach(s=>{
@@ -2344,9 +2420,9 @@ async function exportPPTX(){
       }
       return;
     }
-    if(s.type==='orthotest'){ sectionLines.push(...getOrthoResultLines(s)); return; }
-    if(s.type==='rom'){ sectionLines.push(...getRomResultLines(s)); return; }
-    if(s.type==='mmt'){ sectionLines.push(...getMmtResultLines(s)); return; }
+    if(s.type==='orthotest'){ sectionLines.push(...getOrthoResultLines(s)); suppressIfEmpty = true; return; }
+    if(s.type==='rom'){ sectionLines.push(...getRomResultLines(s)); suppressIfEmpty = true; return; }
+    if(s.type==='mmt'){ sectionLines.push(...getMmtResultLines(s)); suppressIfEmpty = true; return; }
     if(s.type==='progresslog'){ sectionLines.push(...getProgressResultLines(s)); return; }
     const val = getDisplayValue(s);
     if(val) sectionLines.push(`${s.title}：${val}`);
