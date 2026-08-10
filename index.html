@@ -163,6 +163,7 @@
   .progress-session{margin-bottom:12px;}
   .progress-session:last-child{margin-bottom:0;}
   .progress-session-title{font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:4px;}
+  .remaining-badge{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);background:#e7f1ef;padding:2px 8px;border-radius:20px;}
   .progress-date{
     border:1px solid var(--line);
     border-radius:8px;
@@ -410,33 +411,34 @@ const STEPS = [
   {id:'sex', part:'PART1 問診', section:'1. 患者様基礎情報', title:'性別を教えてください', type:'text'},
   {id:'job', part:'PART1 問診', section:'1. 患者様基礎情報', title:'職業・就労状況を教えてください', hint:'頻度・内容など', type:'text'},
   {id:'family', part:'PART1 問診', section:'1. 患者様基礎情報', title:'家族構成・同居状況を教えてください', type:'text'},
-  {id:'goal', part:'PART1 問診', section:'5. 患者様のゴール', title:'患者様が望む状態を教えてください', type:'text'},
+  {id:'goal', part:'PART1 問診', section:'2. 患者様のゴール', title:'患者様が望む状態を教えてください', type:'text'},
+  {id:'ticketCount', part:'PART1 問診', section:'2. 患者様のゴール', title:'回数券の回数を入力してください', hint:'例：10　※未購入・都度払いの場合は空欄のままで構いません', type:'text'},
 
-  {id:'onset', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'発症時期・経過を教えてください', hint:'いつ頃から／きっかけの有無', type:'text'},
-  {id:'surgery', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'手術歴について教えてください', hint:'傷の具合・範囲・色味 等', type:'text'},
-  {id:'priorTreatment', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'OPE歴／整骨院・接骨院・他療法など、これまで受けた治療を教えてください', hint:'治療内容・期間・効果の実感 等', type:'text'},
-  {id:'exercise', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'運動の有無について教えてください', hint:'スポーツ歴・頻度／医師の指示による運動の有無・内容', type:'text'},
-  {id:'hospitalization', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'入院歴があれば教えてください', hint:'時期・理由・期間 等', type:'text'},
-  {id:'medicalHistory', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'病歴（基礎疾患等）を教えてください', type:'text'},
-  {id:'medication', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'服用薬・使用中の装具を教えてください', hint:'湿布／ベルト／薬の種類', type:'text'},
-  {id:'injuryHistory', part:'PART1 問診', section:'2. 現病歴・既往歴', title:'ケガ・交通事故歴があれば教えてください', hint:'受傷時期・部位・後遺症の有無 等', type:'text'},
+  {id:'onset', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'発症時期・経過を教えてください', hint:'いつ頃から／きっかけの有無', type:'text'},
+  {id:'surgery', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'手術歴について教えてください', hint:'傷の具合・範囲・色味 等', type:'text'},
+  {id:'priorTreatment', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'OPE歴／整骨院・接骨院・他療法など、これまで受けた治療を教えてください', hint:'治療内容・期間・効果の実感 等', type:'text'},
+  {id:'exercise', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'運動の有無について教えてください', hint:'スポーツ歴・頻度／医師の指示による運動の有無・内容', type:'text'},
+  {id:'hospitalization', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'入院歴があれば教えてください', hint:'時期・理由・期間 等', type:'text'},
+  {id:'medicalHistory', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'病歴（基礎疾患等）を教えてください', type:'text'},
+  {id:'medication', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'服用薬・使用中の装具を教えてください', hint:'湿布／ベルト／薬の種類', type:'text'},
+  {id:'injuryHistory', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'ケガ・交通事故歴があれば教えてください', hint:'受傷時期・部位・後遺症の有無 等', type:'text'},
 
-  {id:'chiefArea', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'主訴部位を教えてください', type:'text'},
-  {id:'vas', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'疼痛の強さ（VAS）を選んでください', hint:'0：痛みなし　10：これまでで経験した最も強い痛み', type:'scale', noteHint:'安静時／動作時／最悪時など状況をメモしてください'},
-  {id:'relieve', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'症状が寛解する動き・姿勢を教えてください', type:'text'},
-  {id:'worsen', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'症状が悪化する動き・姿勢を教えてください', type:'text'},
-  {id:'onsetTime', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'歩くと何分／何メートル程度で痛みが出るか？', type:'text'},
-  {id:'patientGuess', part:'PART1 問診', section:'3. 主訴・症状の変化', title:'患者様ご自身が考える症状の原因を教えてください', hint:'心当たりのある動作・出来事 等', type:'text'},
+  {id:'chiefArea', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'主訴部位を教えてください', type:'text'},
+  {id:'vas', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'疼痛の強さ（VAS）を選んでください', hint:'0：痛みなし　10：これまでで経験した最も強い痛み', type:'scale', noteHint:'安静時／動作時／最悪時など状況をメモしてください'},
+  {id:'relieve', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'症状が寛解する動き・姿勢を教えてください', type:'text'},
+  {id:'worsen', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'症状が悪化する動き・姿勢を教えてください', type:'text'},
+  {id:'onsetTime', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'歩くと何分／何メートル程度で痛みが出るか？', type:'text'},
+  {id:'patientGuess', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'患者様ご自身が考える症状の原因を教えてください', hint:'心当たりのある動作・出来事 等', type:'text'},
 
-  {id:'workLoad', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'仕事内容・家事負担・特に困っている動作を教えてください', type:'text'},
-  {id:'nutrition', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'栄養について教えてください', hint:'食事回数／PFCバランス／間食の有無／水分量（水のみ）', type:'text'},
-  {id:'sleep', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'睡眠について教えてください', hint:'布団orベッド（スプリング・マットレス）／睡眠時間／夜間トイレに起きる回数', type:'text'},
-  {id:'excretion', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'尿・便の状態を教えてください', hint:'回数・色・形状・残尿感／便秘・下痢の有無 等', type:'text'},
-  {id:'dailyLife', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'1日の過ごし方を教えてください', hint:'座位／立位／臥位／ソファ 等 主な過ごし方と時間の目安', type:'text'},
-  {id:'bath', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'入浴について教えてください', hint:'風呂orシャワー／入浴時間／温度', type:'text'},
-  {id:'stress', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'ストレス度を選んでください', hint:'0：ストレスなし　10：これまでで最も強いストレス', type:'scale', noteHint:''},
-  {id:'stressCause', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'ストレスの要因を教えてください', hint:'仕事／家庭・家族／人間関係／その他', type:'text'},
-  {id:'familySupport', part:'PART1 問診', section:'4. 生活歴・生活習慣', title:'家族のサポート状況を教えてください', type:'text'},
+  {id:'workLoad', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'仕事内容・家事負担・特に困っている動作を教えてください', type:'text'},
+  {id:'nutrition', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'栄養について教えてください', hint:'食事回数／PFCバランス／間食の有無／水分量（水のみ）', type:'text'},
+  {id:'sleep', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'睡眠について教えてください', hint:'布団orベッド（スプリング・マットレス）／睡眠時間／夜間トイレに起きる回数', type:'text'},
+  {id:'excretion', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'尿・便の状態を教えてください', hint:'回数・色・形状・残尿感／便秘・下痢の有無 等', type:'text'},
+  {id:'dailyLife', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'1日の過ごし方を教えてください', hint:'座位／立位／臥位／ソファ 等 主な過ごし方と時間の目安', type:'text'},
+  {id:'bath', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'入浴について教えてください', hint:'風呂orシャワー／入浴時間／温度', type:'text'},
+  {id:'stress', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'ストレス度を選んでください', hint:'0：ストレスなし　10：これまでで最も強いストレス', type:'scale', noteHint:''},
+  {id:'stressCause', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'ストレスの要因を教えてください', hint:'仕事／家庭・家族／人間関係／その他', type:'text'},
+  {id:'familySupport', part:'PART1 問診', section:'5. 生活歴・生活習慣', title:'家族のサポート状況を教えてください', type:'text'},
 
   {id:'photos', part:'PART2 検査', section:'6. 写真・動画記録', title:'アライメント写真を添付してください', hint:'正面／横（右）／横（左）／後面', type:'photo'},
   {id:'video', part:'PART2 検査', section:'6. 写真・動画記録', title:'YouTubeにアップした動画のリンクを貼り付けてください（該当する方のみ）', hint:'限定公開等でアップロードし、そのURLを貼り付けてください', type:'video'},
@@ -1324,9 +1326,11 @@ function renderStep(){
         <div class="progress-block-title">${escapeHtml(g.label)}</div>
         ${g.sessions.map(n=>{
           const entry = progressData[n] || {};
+          const remaining = getRemainingCount(n);
+          const remainingBadge = remaining===null ? '' : `<span class="remaining-badge">残り${remaining}回</span>`;
           return `
           <div class="progress-session">
-            <div class="progress-session-title">${n}回目</div>
+            <div class="progress-session-title">${n}回目${remainingBadge}</div>
             <input type="date" class="progress-date" data-key="${n}" value="${entry.date||''}">
             <textarea class="progress-content" data-key="${n}" placeholder="実施内容・変化点・次回への申し送りなど">${escapeHtml(entry.content||'')}</textarea>
           </div>`;
@@ -1606,13 +1610,22 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
+/* 回数券の残り回数（回数券の回数 − 施術回数）。未入力・数値でない場合はnull */
+function getRemainingCount(sessionNumber){
+  const total = Number(answers['ticketCount']);
+  if(!isFinite(total) || answers['ticketCount']===undefined || String(answers['ticketCount']).trim()==='') return null;
+  return total - sessionNumber;
+}
+
 function getProgressResultLines(s){
   const lines = [];
   s.groups.forEach(g=>{
     g.sessions.forEach(n=>{
       const entry = progressData[n];
       if(entry && (entry.date || entry.content)){
-        lines.push(`${n}回目（${entry.date||'日付未記入'}）：${entry.content||'（内容未記入）'}`);
+        const remaining = getRemainingCount(n);
+        const remainingText = remaining===null ? '' : `／残り${remaining}回`;
+        lines.push(`${n}回目（${entry.date||'日付未記入'}${remainingText}）：${entry.content||'（内容未記入）'}`);
       }
     });
   });
