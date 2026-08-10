@@ -135,6 +135,16 @@
     background:#fff;
   }
   .rom-input:focus{outline:2px solid var(--accent2);border-color:transparent;}
+  /* rom：正常可動域と差分の表示（ROM専用。MMTは従来どおり横並び） */
+  .rom-row.rom-item{flex-direction:column;align-items:stretch;gap:4px;}
+  .rom-item-main{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .rom-item-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .rom-normal{font-size:11px;color:var(--sub);}
+  .rom-diffs{display:flex;gap:10px;flex-wrap:wrap;}
+  .rom-diff{font-size:11px;font-weight:700;color:var(--sub);}
+  .rom-diff.minus{color:var(--danger);}
+  .rom-diff.plus{color:var(--accent2);}
+  .rom-diff.ok{color:var(--accent);}
   .mmt-input{
     width:56px;
     border:1px solid var(--line);
@@ -509,13 +519,13 @@ const STEPS = [
     ]},
   ]},
 
-  {id:'rom', part:'PART2 検査', section:'11. ROM（関節可動域）', title:'ROM（関節可動域）の測定結果を入力してください', hint:'測定した角度（°）のみ入力してください（未入力の項目は出力されません）', type:'rom', groups:[
-    {group:'頸部', items:[{name:'屈曲'},{name:'伸展'},{name:'側屈（右）'},{name:'側屈（左）'},{name:'回旋（右）'},{name:'回旋（左）'}]},
-    {group:'体幹', items:[{name:'屈曲'},{name:'伸展'},{name:'側屈（右）'},{name:'側屈（左）'},{name:'回旋（右）'},{name:'回旋（左）'}]},
-    {group:'肩関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true},{name:'外転',bilateral:true},{name:'内転',bilateral:true},{name:'外旋',bilateral:true},{name:'内旋',bilateral:true}]},
-    {group:'股関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true},{name:'外転',bilateral:true},{name:'内転',bilateral:true},{name:'外旋',bilateral:true},{name:'内旋',bilateral:true}]},
-    {group:'膝関節', items:[{name:'屈曲',bilateral:true},{name:'伸展',bilateral:true}]},
-    {group:'足関節', items:[{name:'背屈',bilateral:true},{name:'底屈',bilateral:true},{name:'内反',bilateral:true},{name:'外反',bilateral:true}]},
+  {id:'rom', part:'PART2 検査', section:'11. ROM（関節可動域）', title:'ROM（関節可動域）の測定結果を入力してください', hint:'測定した角度（°）のみ入力してください。各項目の下に正常可動域（日本整形外科学会・日本リハビリテーション医学会「参考可動域角度」）を表示し、入力すると正常との差を自動判定します（未入力の項目は出力されません）', type:'rom', groups:[
+    {group:'頸部', items:[{name:'屈曲',normal:60},{name:'伸展',normal:50},{name:'側屈（右）',normal:50},{name:'側屈（左）',normal:50},{name:'回旋（右）',normal:60},{name:'回旋（左）',normal:60}]},
+    {group:'体幹', items:[{name:'屈曲',normal:45},{name:'伸展',normal:30},{name:'側屈（右）',normal:50},{name:'側屈（左）',normal:50},{name:'回旋（右）',normal:40},{name:'回旋（左）',normal:40}]},
+    {group:'肩関節', items:[{name:'屈曲',bilateral:true,normal:180},{name:'伸展',bilateral:true,normal:50},{name:'外転',bilateral:true,normal:180},{name:'内転',bilateral:true,normal:0},{name:'外旋',bilateral:true,normal:60},{name:'内旋',bilateral:true,normal:80}]},
+    {group:'股関節', items:[{name:'屈曲',bilateral:true,normal:125},{name:'伸展',bilateral:true,normal:15},{name:'外転',bilateral:true,normal:45},{name:'内転',bilateral:true,normal:20},{name:'外旋',bilateral:true,normal:45},{name:'内旋',bilateral:true,normal:45}]},
+    {group:'膝関節', items:[{name:'屈曲',bilateral:true,normal:130},{name:'伸展',bilateral:true,normal:0}]},
+    {group:'足関節', items:[{name:'背屈',bilateral:true,normal:20},{name:'底屈',bilateral:true,normal:45},{name:'内反',bilateral:true,normal:30},{name:'外反',bilateral:true,normal:20}]},
   ]},
 
   {id:'mmt', part:'PART2 検査', section:'12. MMT（徒手筋力検査）', title:'MMT（徒手筋力検査）の結果を入力してください', hint:'各筋肉のスコア（0〜5）を右・左それぞれ入力してください（未入力の項目は出力されません）', type:'mmt', groups:[
@@ -1021,24 +1031,42 @@ function renderStep(){
       <div class="ortho-group">
         <div class="ortho-group-title">${g.group}${isSuggested?'<span class="suggest-flag">⚠ 所見あり・実施推奨</span>':''}</div>
         ${g.items.map(item=>{
+          const normalHtml = item.normal!==undefined
+            ? `<span class="rom-normal">正常可動域：${item.normal}°</span>` : '<span class="rom-normal"></span>';
+          const diffHtml = (key, label)=>{
+            const d = getRomDiff(romData[key], item.normal);
+            return `<span class="rom-diff ${d?d.cls:''}" data-diff-for="${escapeHtml(key)}">${d?escapeHtml((label?label+' ':'')+d.ui):''}</span>`;
+          };
           if(item.bilateral){
             const rKey = `${g.group}::${item.name}::R`;
             const lKey = `${g.group}::${item.name}::L`;
             return `
-            <div class="rom-row">
-              <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
-              <div class="rom-inputs">
-                <label class="rom-side">右 <input type="number" class="rom-input" data-key="${escapeHtml(rKey)}" value="${romData[rKey]!==undefined?romData[rKey]:''}" placeholder="-">°</label>
-                <label class="rom-side">左 <input type="number" class="rom-input" data-key="${escapeHtml(lKey)}" value="${romData[lKey]!==undefined?romData[lKey]:''}" placeholder="-">°</label>
+            <div class="rom-row rom-item">
+              <div class="rom-item-main">
+                <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
+                <div class="rom-inputs">
+                  <label class="rom-side">右 <input type="number" class="rom-input" data-key="${escapeHtml(rKey)}" data-normal="${item.normal!==undefined?item.normal:''}" data-side="右" value="${romData[rKey]!==undefined?romData[rKey]:''}" placeholder="-">°</label>
+                  <label class="rom-side">左 <input type="number" class="rom-input" data-key="${escapeHtml(lKey)}" data-normal="${item.normal!==undefined?item.normal:''}" data-side="左" value="${romData[lKey]!==undefined?romData[lKey]:''}" placeholder="-">°</label>
+                </div>
+              </div>
+              <div class="rom-item-sub">
+                ${normalHtml}
+                <div class="rom-diffs">${diffHtml(rKey,'右')}${diffHtml(lKey,'左')}</div>
               </div>
             </div>`;
           }
           const key = `${g.group}::${item.name}`;
           return `
-          <div class="rom-row">
-            <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
-            <div class="rom-inputs">
-              <label class="rom-side"><input type="number" class="rom-input" data-key="${escapeHtml(key)}" value="${romData[key]!==undefined?romData[key]:''}" placeholder="-">°</label>
+          <div class="rom-row rom-item">
+            <div class="rom-item-main">
+              <span class="rom-name ${isSuggested?'suggested':''}">${escapeHtml(item.name)}</span>
+              <div class="rom-inputs">
+                <label class="rom-side"><input type="number" class="rom-input" data-key="${escapeHtml(key)}" data-normal="${item.normal!==undefined?item.normal:''}" value="${romData[key]!==undefined?romData[key]:''}" placeholder="-">°</label>
+              </div>
+            </div>
+            <div class="rom-item-sub">
+              ${normalHtml}
+              <div class="rom-diffs">${diffHtml(key,'')}</div>
             </div>
           </div>`;
         }).join('')}
@@ -1202,6 +1230,19 @@ function renderStep(){
       });
     });
   }
+  if(s.type==='rom'){
+    app.querySelectorAll('.rom-input').forEach(inp=>{
+      const update = ()=>{
+        const target = app.querySelector(`.rom-diff[data-diff-for="${CSS.escape(inp.dataset.key)}"]`);
+        if(!target) return;
+        const normal = inp.dataset.normal==='' ? null : Number(inp.dataset.normal);
+        const d = getRomDiff(inp.value, normal);
+        target.className = 'rom-diff' + (d ? ' ' + d.cls : '');
+        target.textContent = d ? ((inp.dataset.side ? inp.dataset.side + ' ' : '') + d.ui) : '';
+      };
+      inp.addEventListener('input', update);
+    });
+  }
   if(s.type==='photo'){
     PHOTO_SLOTS.forEach(key=>{
       const inp = app.querySelector(`input[type=file][data-key="${key}"]`);
@@ -1282,6 +1323,18 @@ function commitStep(s){
   }
 }
 
+// 測定値と正常可動域の差を判定する（正常より小さければ「マイナス◯◯°」）
+function getRomDiff(value, normal){
+  if(value===undefined || value===null || String(value).trim()==='') return null;
+  if(normal===undefined || normal===null) return null;
+  const v = Number(value);
+  if(!isFinite(v)) return null;
+  const d = v - normal;
+  if(d < 0) return {cls:'minus', text:`マイナス${Math.abs(d)}°`, ui:`マイナス${Math.abs(d)}°`};
+  if(d > 0) return {cls:'plus', text:`プラス${d}°`, ui:`プラス${d}°`};
+  return {cls:'ok', text:'±0°', ui:'±0°（正常域）'};
+}
+
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -1314,16 +1367,21 @@ function getMmtResultLines(s){
 
 function getRomResultLines(s){
   const lines = [];
+  const line = (label, key, item)=>{
+    const v = romData[key];
+    if(v===undefined || v==='') return;
+    const d = getRomDiff(v, item.normal);
+    const suffix = item.normal!==undefined
+      ? `（正常${item.normal}°${d?'／'+d.text:''}）` : '';
+    lines.push(`${label}：${v}°${suffix}`);
+  };
   s.groups.forEach(g=>{
     g.items.forEach(item=>{
       if(item.bilateral){
-        const rKey = `${g.group}::${item.name}::R`;
-        const lKey = `${g.group}::${item.name}::L`;
-        if(romData[rKey]!==undefined && romData[rKey]!=='') lines.push(`${g.group}｜${item.name}（右）：${romData[rKey]}°`);
-        if(romData[lKey]!==undefined && romData[lKey]!=='') lines.push(`${g.group}｜${item.name}（左）：${romData[lKey]}°`);
+        line(`${g.group}｜${item.name}（右）`, `${g.group}::${item.name}::R`, item);
+        line(`${g.group}｜${item.name}（左）`, `${g.group}::${item.name}::L`, item);
       } else {
-        const key = `${g.group}::${item.name}`;
-        if(romData[key]!==undefined && romData[key]!=='') lines.push(`${g.group}｜${item.name}：${romData[key]}°`);
+        line(`${g.group}｜${item.name}`, `${g.group}::${item.name}`, item);
       }
     });
   });
