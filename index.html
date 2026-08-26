@@ -276,14 +276,19 @@
   .start-card{text-align:center;padding:30px 22px;}
   .start-card p{font-size:13.5px;color:var(--sub);line-height:1.8;margin:10px 0 20px;}
 
-  .record-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .record-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:10px;}
   .record-row:last-child{border-bottom:none;}
   .record-info{min-width:0;}
   .record-label{font-size:14px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .record-date{font-size:11.5px;color:var(--sub);margin-top:2px;}
-  .record-actions{display:flex;gap:8px;flex-shrink:0;}
+  .record-actions{display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0;}
   .btn-record-open{background:var(--accent);color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .btn-record-dup{background:none;border:1px solid var(--accent2);color:var(--accent2);border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;}
   .btn-record-del{background:none;border:none;color:var(--danger);font-size:12px;text-decoration:underline;cursor:pointer;}
+  .dup-hint{font-size:12px;color:var(--sub);line-height:1.6;margin:4px 0 8px;}
+  .round-legend{font-size:11.5px;color:var(--sub);line-height:1.8;margin:0 0 14px;}
+  .round-badge{display:inline-block;font-size:12px;font-weight:700;color:var(--accent2);background:#eaf3f1;padding:4px 10px;border-radius:20px;margin-bottom:10px;}
+  .hist-preview{font-size:13.5px;line-height:1.7;white-space:pre-line;background:#f7f9f8;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
 
   .team-grid{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px;}
   .team-btn{
@@ -351,14 +356,15 @@
     background:#ffffff;
     color:#22303a;
     padding:24px;
-    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+    font-family:"Yu Gothic","YuGothic","Noto Sans JP","Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,-apple-system,BlinkMacSystemFont,sans-serif;
   }
-  #printArea h1{font-size:20px;margin:0 0 16px;}
-  #printArea h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:4px;margin-top:22px;background:#ffffff;}
-  #printArea .pq{font-size:11px;color:#555;margin-top:8px;}
-  #printArea .pa{font-size:13px;white-space:pre-line;margin:2px 0 0;}
+  #printArea h1{font-size:22px;margin:0 0 16px;}
+  #printArea h2{font-size:16.5px;border-bottom:2px solid #333;padding-bottom:4px;margin-top:22px;background:#ffffff;}
+  #printArea .pq{font-size:12.5px;color:#555;margin-top:8px;}
+  #printArea .pa{font-size:15px;white-space:pre-line;line-height:1.9;margin:2px 0 0;}
   #printArea .pimgs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
   #printArea .pimgs img{width:120px;border-radius:6px;}
+  #printArea .round-legend{font-size:11px;margin:0 0 16px;}
   .export-progress{text-align:center;font-size:12.5px;color:var(--sub);margin-top:6px;min-height:16px;}
   /* 保存状態の通知（無言で保存に失敗するのを防ぐ） */
   .save-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9999;
@@ -414,14 +420,14 @@ const STEPS = [
   {id:'goal', part:'PART1 問診', section:'2. 患者様のゴール', title:'患者様が望む状態を教えてください', type:'text'},
   {id:'ticketCount', part:'PART1 問診', section:'2. 患者様のゴール', title:'回数券の回数を入力してください', hint:'例：10　※未購入・都度払いの場合は空欄のままで構いません', type:'text'},
 
-  {id:'onset', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'発症時期・経過を教えてください', hint:'いつ頃から／きっかけの有無', type:'text'},
-  {id:'surgery', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'手術歴について教えてください', hint:'傷の具合・範囲・色味 等', type:'text'},
-  {id:'priorTreatment', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'OPE歴／整骨院・接骨院・他療法など、これまで受けた治療を教えてください', hint:'治療内容・期間・効果の実感 等', type:'text'},
-  {id:'exercise', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'運動の有無について教えてください', hint:'スポーツ歴・頻度／医師の指示による運動の有無・内容', type:'text'},
-  {id:'hospitalization', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'入院歴があれば教えてください', hint:'時期・理由・期間 等', type:'text'},
-  {id:'medicalHistory', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'病歴（基礎疾患等）を教えてください', type:'text'},
-  {id:'medication', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'服用薬・使用中の装具を教えてください', hint:'湿布／ベルト／薬の種類', type:'text'},
-  {id:'injuryHistory', part:'PART1 問診', section:'3. 現病歴・既往歴', title:'ケガ・交通事故歴があれば教えてください', hint:'受傷時期・部位・後遺症の有無 等', type:'text'},
+  {id:'onset', part:'PART1 問診', section:'3. 施術歴', title:'発症時期・経過を教えてください', hint:'いつ頃から／きっかけの有無', type:'text'},
+  {id:'surgery', part:'PART1 問診', section:'3. 施術歴', title:'手術歴について教えてください', hint:'傷の具合・範囲・色味 等', type:'text'},
+  {id:'priorTreatment', part:'PART1 問診', section:'3. 施術歴', title:'整骨院・接骨院・他療法など、これまで受けた治療を教えてください', hint:'治療内容・期間・効果の実感 等', type:'text'},
+  {id:'exercise', part:'PART1 問診', section:'3. 施術歴', title:'運動の有無について教えてください', hint:'スポーツ歴・頻度／医師の指示による運動の有無・内容', type:'text'},
+  {id:'hospitalization', part:'PART1 問診', section:'3. 施術歴', title:'入院歴があれば教えてください', hint:'時期・理由・期間 等', type:'text'},
+  {id:'medicalHistory', part:'PART1 問診', section:'3. 施術歴', title:'病歴（基礎疾患等）を教えてください', type:'text'},
+  {id:'medication', part:'PART1 問診', section:'3. 施術歴', title:'服用薬・使用中の装具を教えてください', hint:'湿布／ベルト／薬の種類', type:'text'},
+  {id:'injuryHistory', part:'PART1 問診', section:'3. 施術歴', title:'ケガ・交通事故歴があれば教えてください', hint:'受傷時期・部位・後遺症の有無 等', type:'text'},
 
   {id:'chiefArea', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'主訴部位を教えてください', type:'text'},
   {id:'vas', part:'PART1 問診', section:'4. 主訴・症状の変化', title:'疼痛の強さ（VAS）を選んでください', hint:'0：痛みなし　10：これまでで経験した最も強い痛み', type:'scale', noteHint:'安静時／動作時／最悪時など状況をメモしてください'},
@@ -573,6 +579,8 @@ const STEPS = [
     {label:'51〜55回目', sessions:[51,52,53,54,55]},
     {label:'56〜60回目', sessions:[56,57,58,59,60]},
   ]},
+
+  {id:'remarks', part:'PART3 仮説', section:'18. 備考', title:'その他、自由にご記入ください', hint:'上記の項目に当てはまらない内容があれば、自由に記入してください', type:'text'},
 ];
 
 /* ========================= state ========================= */
@@ -593,6 +601,17 @@ let progressData = {}; // {sessionNumber: {date:'', content:''}}
 /* 保存済みの写真。1枚数百KBあるため、自動保存のたびに全部送り直さず
    前回と変わったスロットだけを書き込むための比較用。 */
 let syncedPhotos = { recordId: null, map: {} };
+
+/* ---- 複製（何回目の記入か）と色分け ----
+   「複製」ボタンで記録をコピーすると新しい記録として保存され（元の記録は残る）、
+   新しい記録の中で自由記入欄に追記・変更した部分だけが、その回の色で表示される。
+   textHistory は {フィールドid: [{round:回数, text:'その回に入力された文字列断片'}, ...]} の形で、
+   各断片を順番につなげると現在の全文（answers[id]）と一致するように保つ。 */
+const ROUND_COLORS = {1:'#22303a', 2:'#c0392b', 3:'#1d5fa8', 4:'#c98a2e', 5:'#7d3c98'};
+const ROUND_COLOR_NAMES = {1:'黒', 2:'赤', 3:'青', 4:'オレンジ', 5:'紫'};
+const MAX_ROUND = 5;
+let textHistory = {}; // {fieldId: [{round, text}, ...]}
+let currentRecordRound = 1;
 function resetSyncedPhotos(recordId, saved){ syncedPhotos = { recordId, map: Object.assign({}, saved || {}) }; }
 let idx = -1; // -1 = record list screen, STEPS.length = summary
 let recognizing = false;
@@ -762,6 +781,7 @@ async function createNewRecord(label){
   currentRecordId = id;
   currentRecordLabel = finalLabel;
   answers = {}; photoData = {}; videoData = {}; orthoTestData = {}; romData = {}; mmtData = {}; progressData = {};
+  textHistory = {}; currentRecordRound = 1;
   resetSyncedPhotos(id, null);
   const stateObj = buildStateForSave();
   if(cloudReady){
@@ -789,6 +809,8 @@ async function loadRecord(id){
       romData = rec.state.romData || {};
       mmtData = rec.state.mmtData || {};
       progressData = rec.state.progressData || {};
+      textHistory = rec.state.textHistory || {};
+      currentRecordRound = rec.state.recordRound || 1;
       currentRecordId = id;
       currentRecordLabel = rec.label;
       return true;
@@ -806,6 +828,8 @@ async function loadRecord(id){
     romData = d.romData || {};
     mmtData = d.mmtData || {};
     progressData = d.progressData || {};
+    textHistory = d.textHistory || {};
+    currentRecordRound = d.recordRound || 1;
     currentRecordId = id;
     const list = getRecordsIndex();
     const rec = list.find(r=>r.id===id);
@@ -823,6 +847,70 @@ async function deleteRecord(id){
   }
   if(currentRecordId===id) currentRecordId = null;
 }
+
+/* ---- 複製（元の記録は残したまま、新しい回として保存） ---- */
+async function duplicateRecord(id, oldLabel){
+  let srcState = null, srcPhotos = {};
+  if(cloudReady){
+    const rec = await cloudFetchRecord(currentTeam, id);
+    if(!rec) return null;
+    srcState = rec.state; srcPhotos = rec.photos || {};
+  } else {
+    const raw = localStorage.getItem(RECORD_KEY_PREFIX + id);
+    if(!raw) return null;
+    srcState = JSON.parse(raw);
+    srcPhotos = localReadPhotos(id);
+  }
+  const srcRound = srcState.recordRound || 1;
+  if(srcRound >= MAX_ROUND){
+    alert(`色分けは${MAX_ROUND}回目（${ROUND_COLOR_NAMES[MAX_ROUND]}）までのため、これ以上複製すると追記分も${ROUND_COLOR_NAMES[MAX_ROUND]}で表示されます。`);
+  }
+  const newRound = Math.min(MAX_ROUND, srcRound + 1);
+  const newId = 'r' + Date.now();
+  const newLabel = nextRoundLabel(oldLabel, newRound);
+
+  answers = Object.assign({}, srcState.answers || {});
+  videoData = Object.assign({}, srcState.videoData || {});
+  orthoTestData = Object.assign({}, srcState.orthoTestData || {});
+  romData = Object.assign({}, srcState.romData || {});
+  mmtData = Object.assign({}, srcState.mmtData || {});
+  progressData = Object.assign({}, srcState.progressData || {});
+  textHistory = JSON.parse(JSON.stringify(srcState.textHistory || {}));
+  /* 複製機能を追加する前に作られた記録には textHistory が無いので、
+     複製時点で今の文字列をまるごと元の回として記録しておく */
+  STEPS.forEach(s=>{
+    if(s.type==='text' && answers[s.id] && (!textHistory[s.id] || !textHistory[s.id].length)){
+      textHistory[s.id] = [{round: srcRound, text: answers[s.id]}];
+    }
+  });
+  photoData = Object.assign({}, srcPhotos);
+  currentRecordRound = newRound;
+  currentRecordId = newId;
+  currentRecordLabel = newLabel;
+  resetSyncedPhotos(newId, null);
+
+  const stateObj = buildStateForSave();
+  if(cloudReady){
+    try{
+      await cloudSaveRecord(currentTeam, newId, newLabel, JSON.stringify(stateObj));
+      await cloudSavePhotos(currentTeam, newId);
+    }catch(e){
+      console.error(e);
+      alert('複製できませんでした。通信状況をご確認ください。');
+      return null;
+    }
+  } else {
+    const list = getRecordsIndex();
+    list.unshift({ id: newId, label: newLabel, updatedAt: Date.now() });
+    saveRecordsIndex(list);
+    try{
+      localStorage.setItem(RECORD_KEY_PREFIX + newId, JSON.stringify(stateObj));
+      PHOTO_SLOTS.forEach(k=>{ if(photoData[k]) localStorage.setItem(localPhotoKey(newId, k), photoData[k]); });
+    }catch(e){ console.error(e); }
+  }
+  return newId;
+}
+
 /* ---- 保存状態の表示 ----
    以前は保存の失敗を console にだけ出していたため、画面上は成功したように見えて
    入力が消える事故が起きていました。必ずユーザーに見せます。 */
@@ -849,7 +937,7 @@ function byteLength(str){
 /* 記録本体に入れる分。写真はスロットごとの別ドキュメント／別キーに保存するので含めない。
    分割前に作られた記録も、次に保存された時点でこの形に移行します。 */
 function buildStateForSave(){
-  return {answers, videoData, orthoTestData, romData, mmtData, progressData};
+  return {answers, videoData, orthoTestData, romData, mmtData, progressData, textHistory, recordRound: currentRecordRound};
 }
 
 /* 保存が重ならないよう直列化する（連続入力時の取りこぼし防止） */
@@ -1107,7 +1195,9 @@ async function renderStart(){
 
   const listHtml = records.length ? `
     <div class="card" style="text-align:left;">
-      <div class="q-title" style="font-size:15px;margin-bottom:12px;">保存済みの記録</div>
+      <div class="q-title" style="font-size:15px;margin-bottom:2px;">保存済みの記録</div>
+      <p class="dup-hint">「複製」を押すと、その記録の内容を引き継いだまま新しい記録として追加されます（元の記録はそのまま残ります）。新しく追記・変更した内容は回数ごとに色分けされます。</p>
+      ${roundLegendHtml()}
       ${records.map(r=>`
         <div class="record-row" data-id="${r.id}">
           <div class="record-info">
@@ -1116,6 +1206,7 @@ async function renderStart(){
           </div>
           <div class="record-actions">
             <button class="btn-record-open" data-id="${r.id}">続きを入力</button>
+            <button class="btn-record-dup" data-id="${r.id}">複製</button>
             <button class="btn-record-del" data-id="${r.id}">削除</button>
           </div>
         </div>
@@ -1155,6 +1246,13 @@ async function renderStart(){
         await deleteRecord(btn.dataset.id);
         renderStart();
       }
+    });
+  });
+  app.querySelectorAll('.btn-record-dup').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const rec = records.find(r=>r.id===btn.dataset.id);
+      const newId = await duplicateRecord(btn.dataset.id, rec ? rec.label : '');
+      if(newId){ idx = STEPS.length; renderStep(); }
     });
   });
 }
@@ -1197,8 +1295,10 @@ function renderStep(){
   let inputHtml = '';
   if(s.type==='text'){
     const val = answers[s.id] || '';
+    const histSegs = currentRecordRound>1 ? getFieldSegments(s.id) : [];
     inputHtml = `
       ${s.id==='objectiveSummary' ? `<button class="btn btn-ghost" id="autoFillBtn" type="button" style="margin-bottom:12px;">検査結果から自動入力</button>` : ''}
+      ${histSegs.length ? `<div class="hist-preview">${segmentsToHtml(histSegs)}</div>` : ''}
       <div class="input-row">
         <textarea id="ans" placeholder="回答を入力…">${escapeHtml(val)}</textarea>
         <button class="mic" id="micBtn" type="button" aria-label="音声入力">${micIcon()}</button>
@@ -1391,6 +1491,7 @@ function renderStep(){
   app.innerHTML = `
     <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
     <div class="progress-label">${idx+1} / ${STEPS.length}</div>
+    ${currentRecordRound>1 ? `<div class="round-badge">この記録は${currentRecordRound}回目の入力です（追記分は${ROUND_COLOR_NAMES[currentRecordRound]}で表示されます）</div>` : ''}
     <div class="card">
       <div class="meta-row">
         <span class="part-tag">${s.part}</span>
@@ -1521,7 +1622,11 @@ function renderStep(){
 function commitStep(s){
   if(s.type==='text'){
     const el = document.getElementById('ans');
-    if(el) answers[s.id] = el.value.trim();
+    if(el){
+      const v = el.value.trim();
+      answers[s.id] = v;
+      updateFieldHistory(s.id, v, currentRecordRound);
+    }
   } else if(s.type==='scale'){
     const r = document.getElementById('scaleRange');
     if(r) answers[s.id] = parseInt(r.value,10);
@@ -1608,6 +1713,90 @@ function getRomDiff(value, normal){
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ========================= 複製・ラウンド色分け ヘルパー =========================
+   自由記入欄の文字列を「どの回に入力された部分か」で管理するための小さなdiff。
+   前回保存時の全文（prevSegsをつなげたもの）と、今回の全文（newText）を比較し、
+   共通の先頭部分・末尾部分はそのままの回のまま残し、間にある変化した部分だけを
+   「今の回（currentRound）」として色付けする。ほとんどの追記（末尾に足す／
+   先頭に足す）はこれで正しく色分けできる。 */
+function concatSegments(segs){ return (segs||[]).map(seg=>seg.text).join(''); }
+
+function sliceSegments(segs, start, end){
+  let pos = 0; const out = [];
+  for(const seg of (segs||[])){
+    const segStart = pos, segEnd = pos + seg.text.length;
+    pos = segEnd;
+    const from = Math.max(start, segStart), to = Math.min(end, segEnd);
+    if(from < to) out.push({round: seg.round, text: seg.text.slice(from - segStart, to - segStart)});
+    if(segStart >= end) break;
+  }
+  return out;
+}
+
+function mergeAdjacentSameRound(segs){
+  const out = [];
+  for(const seg of segs){
+    if(!seg.text) continue;
+    if(out.length && out[out.length-1].round === seg.round) out[out.length-1].text += seg.text;
+    else out.push({round: seg.round, text: seg.text});
+  }
+  return out;
+}
+
+function updateSegmentsForEdit(prevSegs, newText, currentRound){
+  const baseline = concatSegments(prevSegs);
+  if(baseline === (newText || '')) return prevSegs || [];
+  if(!prevSegs || !prevSegs.length){
+    return newText ? [{round: currentRound, text: newText}] : [];
+  }
+  let p = 0;
+  const maxP = Math.min(baseline.length, newText.length);
+  while(p < maxP && baseline[p] === newText[p]) p++;
+  let s = 0;
+  const maxS = Math.min(baseline.length, newText.length) - p;
+  while(s < maxS && baseline[baseline.length-1-s] === newText[newText.length-1-s]) s++;
+  const beforeSegs = sliceSegments(prevSegs, 0, p);
+  const afterSegs = sliceSegments(prevSegs, baseline.length - s, baseline.length);
+  const middleText = newText.slice(p, newText.length - s);
+  const middleSegs = middleText ? [{round: currentRound, text: middleText}] : [];
+  return mergeAdjacentSameRound([...beforeSegs, ...middleSegs, ...afterSegs]);
+}
+
+function updateFieldHistory(fieldId, newValue, round){
+  const prev = textHistory[fieldId] || [];
+  const updated = updateSegmentsForEdit(prev, newValue || '', round || 1);
+  if(updated.length) textHistory[fieldId] = updated; else delete textHistory[fieldId];
+}
+
+/* 過去のデータ（複製機能を追加する前に保存された記録）には textHistory が無いので、
+   その場合は今ある文字列をまるごと1回目扱いにして表示する。 */
+function getFieldSegments(fieldId){
+  const segs = textHistory[fieldId];
+  if(segs && segs.length) return segs;
+  const val = answers[fieldId];
+  return val ? [{round:1, text:val}] : [];
+}
+
+function segmentsToHtml(segs){
+  return (segs||[]).map(seg=>`<span style="color:${ROUND_COLORS[seg.round]||ROUND_COLORS[1]}">${escapeHtml(seg.text)}</span>`).join('');
+}
+
+function segmentsToPlainWithMarkers(segs){
+  return (segs||[]).map(seg=>{
+    const marker = seg.round && seg.round>1 ? `［${seg.round}回目追記］` : '';
+    return marker + seg.text;
+  }).join('');
+}
+
+function roundLegendHtml(){
+  return `<div class="round-legend">記入回数の色分け：${[1,2,3,4,5].map(r=>`<span style="color:${ROUND_COLORS[r]}">■${r}回目（${ROUND_COLOR_NAMES[r]}）</span>`).join('　')}</div>`;
+}
+
+function nextRoundLabel(label, round){
+  const base = (label || '').replace(/[\s・]*\d+回目\s*$/,'').trim();
+  return base ? `${base}・${round}回目` : `${round}回目`;
 }
 
 /* 回数券の残り回数（回数券の回数 − 施術回数）。
@@ -1915,6 +2104,15 @@ function renderSummary(){
       </div>`;
       return;
     }
+    if(s.type==='text'){
+      const segs = getFieldSegments(s.id);
+      const html = segmentsToHtml(segs);
+      itemsHtml += `<div class="sum-item">
+        <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
+        <div class="sum-a ${segs.length?'':'empty'}">${segs.length ? html : '未入力'}</div>
+      </div>`;
+      return;
+    }
     const val = getDisplayValue(s);
     itemsHtml += `<div class="sum-item">
       <div class="sum-q">${s.section}｜${s.title}<button class="sum-edit" data-idx="${i}">編集</button></div>
@@ -1925,7 +2123,8 @@ function renderSummary(){
   app.innerHTML = `
     <div class="card">
       <div class="part-tag">確認・共有</div>
-      <div class="q-title" style="margin-bottom:14px;">入力内容の確認</div>
+      <div class="q-title" style="margin-bottom:6px;">入力内容の確認</div>
+      ${roundLegendHtml()}
       ${itemsHtml}
     </div>
     <div class="action-bar">
@@ -1963,7 +2162,7 @@ function renderSummary(){
 
 function buildReportText(){
   let lastPart = null;
-  let lines = [`【症例評価・問診】MSMメソッド-X-`];
+  let lines = [`【症例評価・問診】MSMメソッド-X-`, `※［2回目追記］などの表記は、複製後にその回で新しく追記・変更された内容を示します`];
   STEPS.forEach(s=>{
     if(s.part !== lastPart){ lines.push(''); lines.push(`■ ${s.part}`); lastPart = s.part; }
     if(s.type==='photo'){
@@ -2011,6 +2210,12 @@ function buildReportText(){
       }
       return;
     }
+    if(s.type==='text'){
+      const segs = getFieldSegments(s.id);
+      const text = segmentsToPlainWithMarkers(segs);
+      if(text) lines.push(`・${s.title}：${text}`);
+      return;
+    }
     const val = getDisplayValue(s);
     if(val) lines.push(`・${s.title}：${val}`);
   });
@@ -2030,6 +2235,7 @@ function copyReport(){
 function buildPrintAreaHtml(){
   let lastPart = null;
   let html = `<h1>症例評価・問診　MSMメソッド-X-</h1>`;
+  html += roundLegendHtml();
   STEPS.forEach(s=>{
     if(s.part !== lastPart){ html += `<h2>${s.part}</h2>`; lastPart = s.part; }
     if(s.type==='photo'){
@@ -2072,7 +2278,12 @@ function buildPrintAreaHtml(){
     if(s.type==='progresslog'){
       const progLines = getProgressResultLines(s);
       html += `<div class="pq">${s.section}｜${s.title}</div>`;
-      html += `<div class="pa">${progLines.length ? progLines.map(escapeHtml).join('\n') : '未入力'}</div>`;
+      html += `<div class="pa">${progLines.length ? progLines.map(escapeHtml).join('\n\n') : '未入力'}</div>`;
+      return;
+    }
+    if(s.type==='text'){
+      const segs = getFieldSegments(s.id);
+      html += `<div class="pq">${s.section}｜${s.title}</div><div class="pa">${segs.length ? segmentsToHtml(segs) : '未入力'}</div>`;
       return;
     }
     const val = getDisplayValue(s);
