@@ -2409,6 +2409,16 @@ function exportPDF(){
       sy += sh;
     }
 
+    // 全ページの右下（ロゴの左隣）にページ番号を入れる
+    const totalPages = doc.internal.getNumberOfPages();
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(110,110,110);
+    for(let p = 1; p <= totalPages; p++){
+      doc.setPage(p);
+      doc.text(`${p} / ${totalPages}`, pageW - logoW - margin - 10, pageH - 24, { align: 'right' });
+    }
+
     doc.save(`症例評価問診_${todayFileStr()}.pdf`);
     setExportMsg('PDFを保存しました');
     setTimeout(()=>setExportMsg(''), 3000);
