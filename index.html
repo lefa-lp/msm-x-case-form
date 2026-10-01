@@ -412,6 +412,7 @@ const STEPS = [
   {id:'date', part:'基本情報', section:'記入情報', title:'記入日を確認してください', type:'text', auto:true},
   {id:'staff', part:'基本情報', section:'記入情報', title:'担当者名を入力してください', type:'text'},
   {id:'sessionNo', part:'基本情報', section:'記入情報', title:'施術回数（何回目か）を入力してください', type:'text'},
+  {id:'chiefComplaint', part:'基本情報', section:'記入情報', title:'診断名または本症例の主訴を入力してください', hint:'例：腰の痛み、L4/5椎間板ヘルニアなど', type:'text'},
 
   {id:'age', part:'PART1 問診', section:'1. 患者様基礎情報', title:'年齢を教えてください', type:'text'},
   {id:'sex', part:'PART1 問診', section:'1. 患者様基礎情報', title:'性別を教えてください', type:'text'},
@@ -537,6 +538,8 @@ const STEPS = [
       {name:'Anterior impingement test', desc:'足関節前方インピンジメント'},
     ]},
   ]},
+
+  {id:'orthoFree', part:'PART2 検査', section:'10. 整形外科的テスト', title:'上記以外に実施した検査・その他の所見を自由に記入してください', hint:'リストにない検査名・結果・気づいた点など、自由にご記入ください（未入力でも構いません）', type:'text'},
 
   {id:'rom', part:'PART2 検査', section:'11. ROM（関節可動域）', title:'ROM（関節可動域）の測定結果を入力してください', hint:'測定した角度（°）のみ入力してください。各項目の下に正常可動域（日本整形外科学会・日本リハビリテーション医学会「参考可動域角度」）を表示し、入力すると正常との差を自動判定します（未入力の項目は出力されません）', type:'rom', groups:[
     {group:'頸部', items:[{name:'屈曲',normal:60},{name:'伸展',normal:50},{name:'側屈（右）',normal:50},{name:'側屈（左）',normal:50},{name:'回旋（右）',normal:60},{name:'回旋（左）',normal:60}]},
@@ -2410,13 +2413,18 @@ function exportPDF(){
     }
 
     // 全ページの右下（ロゴの左隣）にページ番号を入れる
+    // 透かし用の透明度設定が残っていても必ず不透明で描くよう、状態を明示的に戻す
     const totalPages = doc.internal.getNumberOfPages();
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(9);
-    doc.setTextColor(110,110,110);
     for(let p = 1; p <= totalPages; p++){
       doc.setPage(p);
-      doc.text(`${p} / ${totalPages}`, pageW - logoW - margin - 10, pageH - 24, { align: 'right' });
+      if(doc.setGState && doc.GState){
+        doc.setGState(new doc.GState({ opacity: 1 }));
+      }
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(12);
+      doc.setTextColor(40,40,40);
+      // ロゴ（高さ logoH）と縦位置をそろえ、ロゴの左隣に右寄せで置く
+      doc.text(`${p} / ${totalPages}`, pageW - logoW - margin - 12, pageH - 20 - (logoH / 2) + 4, { align: 'right' });
     }
 
     doc.save(`症例評価問診_${todayFileStr()}.pdf`);
@@ -2446,6 +2454,8 @@ function newPptxSlide(pptx){
 
 function addPptxLogo(slide){
   slide.addImage({ data: LOGO_DATA_URI, x: 8.5, y: 5.25, w: 1.2, h: 1.2*LOGO_ASPECT });
+  // 右下（ロゴの左隣）にスライド番号を入れる
+  slide.slideNumber = { x: 7.3, y: 5.2, w: 1.1, h: 0.3, align: 'right', fontSize: 12, bold: true, color: '282828', fontFace: 'Arial' };
 }
 
 /* ---- 写真スライドの配置 ----
