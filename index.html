@@ -362,8 +362,8 @@
   #printArea h2{font-size:16.5px;border-bottom:2px solid #333;padding-bottom:6px;margin-top:30px;margin-bottom:6px;background:#ffffff;}
   #printArea .pq{font-size:12.5px;color:#555;margin-top:20px;line-height:1.7;}
   #printArea .pa{font-size:15px;white-space:pre-line;line-height:2.2;margin:8px 0 0;}
-  #printArea .pimgs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
-  #printArea .pimgs img{width:120px;border-radius:6px;}
+  #printArea .pimgs{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  #printArea .pimgs img{width:340px;border-radius:6px;}
   #printArea .round-legend{font-size:11px;margin:0 0 16px;}
   .export-progress{text-align:center;font-size:12.5px;color:var(--sub);margin-top:6px;min-height:16px;}
   /* 保存状態の通知（無言で保存に失敗するのを防ぐ） */
@@ -2320,7 +2320,7 @@ function exportPDF(){
      html2canvasでページ全体を画像化し、A4サイズに切り分けて貼る方式にする。 */
   const srcW = element.offsetWidth || 760;
   const srcH = element.scrollHeight;
-  const MAX_AREA = 12000000; // iOS Safariのcanvas上限対策
+  const MAX_AREA = 16000000; // iOS Safariのcanvas上限対策
   let scale = 2;
   if(srcW * srcH * scale * scale > MAX_AREA){
     scale = Math.max(1, Math.sqrt(MAX_AREA / (srcW * srcH)));
@@ -2395,7 +2395,7 @@ function exportPDF(){
       sctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
 
       doc.addImage(
-        slice.toDataURL('image/jpeg', 0.92), 'JPEG',
+        slice.toDataURL('image/jpeg', 0.95), 'JPEG',
         margin, contentTop, contentW, sh / pxPerPt,
         undefined, 'FAST'
       );
